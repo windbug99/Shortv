@@ -199,24 +199,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSubscriptions(userId: string): Promise<Channel[]> {
-    return await db
+    const result = await db
       .select({
         id: channels.id,
         channelId: channels.channelId,
         name: channels.name,
         description: channels.description,
         thumbnailUrl: channels.thumbnailUrl,
-        subscriberCount: channels.subscriberCount,
-        videoCount: channels.videoCount,
-        totalViews: channels.totalViews,
         lastUpdate: channels.lastUpdate,
         createdAt: channels.createdAt,
         addedBy: channels.addedBy,
+        // Calculate real statistics
+        subscriberCount: sql<number>`(
+          SELECT COUNT(*) 
+          FROM user_channel_subscriptions 
+          WHERE channel_id = ${channels.id}
+        )`,
+        videoCount: sql<number>`(
+          SELECT COUNT(*) 
+          FROM videos 
+          WHERE channel_id = ${channels.id}
+        )`,
+        totalViews: sql<number>`(
+          SELECT COALESCE(SUM(view_count), 0) 
+          FROM videos 
+          WHERE channel_id = ${channels.id}
+        )`
       })
       .from(userChannelSubscriptions)
       .innerJoin(channels, eq(userChannelSubscriptions.channelId, channels.id))
       .where(eq(userChannelSubscriptions.userId, userId))
       .orderBy(desc(channels.lastUpdate));
+
+    return result as Channel[];
   }
 
   async isUserSubscribed(userId: string, channelId: number): Promise<boolean> {
