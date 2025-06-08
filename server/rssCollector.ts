@@ -108,12 +108,25 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
     const videos = parseRSSFeed(xmlText);
     const channelInfo = parseChannelInfo(xmlText);
     
-    // Update channel info with real data from YouTube API
-    if (channelInfo.name || channelInfo.thumbnailUrl) {
-      await storage.updateChannel(dbChannelId, {
-        name: channelInfo.name,
-        thumbnailUrl: channelInfo.thumbnailUrl,
-      });
+    // Update channel info only if we have better data
+    const currentChannel = await storage.getChannels();
+    const existingChannel = currentChannel.find(c => c.id === dbChannelId);
+    
+    const updates: any = {};
+    
+    // Always update name if available
+    if (channelInfo.name) {
+      updates.name = channelInfo.name;
+    }
+    
+    // Only update thumbnail if we don't have one or we got a better one from API
+    if (channelInfo.thumbnailUrl && (!existingChannel?.thumbnailUrl || 
+        !existingChannel.thumbnailUrl.includes('yt3.ggpht.com'))) {
+      updates.thumbnailUrl = channelInfo.thumbnailUrl;
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      await storage.updateChannel(dbChannelId, updates);
       console.log(`Updated channel info: ${channelInfo.name}`);
     }
     
