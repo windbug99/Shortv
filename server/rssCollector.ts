@@ -14,13 +14,19 @@ interface RSSVideo {
 export function initializeRSSCollector() {
   console.log("Initializing RSS collector...");
   
-  // Run immediately on startup
-  collectAllChannelVideos();
+  // Delay initial run to allow database connection to stabilize
+  setTimeout(() => {
+    collectAllChannelVideos().catch(error => {
+      console.error("Error in initial RSS collection:", error);
+    });
+  }, 5000);
   
   // Schedule to run every hour
   cron.schedule("0 * * * *", () => {
     console.log("Running scheduled RSS collection...");
-    collectAllChannelVideos();
+    collectAllChannelVideos().catch(error => {
+      console.error("Error in scheduled RSS collection:", error);
+    });
   });
 }
 

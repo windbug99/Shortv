@@ -15,11 +15,12 @@ export default function Feed() {
   // Extract video ID from URL
   const videoId = window.location.pathname.split("/").pop();
 
-  const { data: videos } = useQuery({
+  const { data: videos = [] } = useQuery({
     queryKey: ["/api/videos/feed"],
   });
 
-  const video = videos?.find((v: any) => v.id.toString() === videoId);
+  const videosArray = Array.isArray(videos) ? videos : [];
+  const video = videosArray.find((v: any) => v.id.toString() === videoId);
 
   const incrementViewMutation = useMutation({
     mutationFn: async () => {
