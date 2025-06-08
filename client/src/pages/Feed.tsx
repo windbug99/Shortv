@@ -7,6 +7,8 @@ import { ArrowLeft, Share, ExternalLink, ThumbsUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function Feed() {
   const [, setLocation] = useLocation();
@@ -191,12 +193,16 @@ export default function Feed() {
         {/* Detailed Summary */}
         <Card>
           <CardContent className="p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">핵심정리</h2>
-            <div className="prose prose-gray max-w-none">
+            <div className="prose prose-lg prose-gray max-w-none prose-headings:text-gray-900 prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-strong:text-gray-900 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:p-4 prose-blockquote:rounded-lg">
               {video.detailedSummary ? (
-                <div dangerouslySetInnerHTML={{ __html: video.detailedSummary.replace(/\n/g, '<br />') }} />
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {video.detailedSummary}
+                </ReactMarkdown>
               ) : (
-                <p className="text-gray-500">상세한 AI 요약이 아직 생성되지 않았습니다.</p>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">핵심정리</h2>
+                  <p className="text-gray-500">상세한 AI 요약이 아직 생성되지 않았습니다.</p>
+                </div>
               )}
             </div>
             
