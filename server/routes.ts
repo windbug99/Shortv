@@ -321,6 +321,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual RSS collection trigger
+  app.post('/api/videos/collect', isAuthenticated, async (req, res) => {
+    try {
+      console.log("Manual RSS collection triggered");
+      await collectAllChannelVideos();
+      res.json({ message: "RSS collection completed successfully" });
+    } catch (error) {
+      console.error("Error in manual RSS collection:", error);
+      res.status(500).json({ message: "Failed to collect videos" });
+    }
+  });
+
   // Initialize RSS collector (runs every hour)
   initializeRSSCollector();
 
