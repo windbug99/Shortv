@@ -199,45 +199,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test video duration filtering
-  app.post('/api/test-duration/:videoId', async (req, res) => {
+  // Fix all video durations using YouTube API
+  app.post('/api/videos/fix-durations', async (req, res) => {
     try {
-      const { videoId } = req.params;
-      
-      // Test YouTube API duration fetch
-      const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${process.env.YOUTUBE_API_KEY}`;
-      const response = await fetch(apiUrl);
-      
-      if (!response.ok) {
-        return res.status(400).json({ message: "YouTube API error" });
+      if (!process.env.YOUTUBE_API_KEY) {
+        return res.status(400).json({ message: "YouTube API key not available" });
       }
-      
-      const data = await response.json();
-      if (data.items && data.items.length > 0) {
-        const duration = data.items[0].contentDetails.duration;
-        
-        // Test duration parsing
-        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-        if (match) {
-          const hours = parseInt(match[1] || "0");
-          const minutes = parseInt(match[2] || "0");
-          const seconds = parseInt(match[3] || "0");
-          const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+      const videos = await storage.getVideos();
+      let updated = 0;
+      let removed = 0;
+
+      for (const video of videos) {
+        try {
+          // Get duration from YouTube API
+          const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${video.videoId}&key=${process.env.YOUTUBE_API_KEY}`;
+          const response = await fetch(apiUrl);
           
-          return res.json({
-            videoId,
-            duration,
-            totalSeconds,
-            isShort: totalSeconds <= 60,
-            shouldSkip: totalSeconds <= 60
-          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.items && data.items.length > 0 && data.items[0].contentDetails) {
+              const duration = data.items[0].contentDetails.duration;
+              
+              // Parse duration to check if it's too short
+              const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+              if (match) {
+                const hours = parseInt(match[1] || "0");
+                const minutes = parseInt(match[2] || "0");
+                const seconds = parseInt(match[3] || "0");
+                const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                
+                if (totalSeconds <= 60) {
+                  // Remove short videos
+                  await storage.updateVideo(video.id, { duration: "DELETED" });
+                  console.log(`Marking short video for removal: ${video.title} (${duration})`);
+                  removed++;
+                } else {
+                  // Update with proper duration
+                  await storage.updateVideo(video.id, { duration });
+                  console.log(`Updated duration for: ${video.title} (${duration})`);
+                  updated++;
+                }
+              }
+            } else {
+              console.log(`No duration data for video: ${video.title}`);
+            }
+          } else {
+            console.log(`API error for video: ${video.title} - ${response.status}`);
+          }
+        } catch (error) {
+          console.error(`Error processing video ${video.title}:`, error);
         }
       }
-      
-      res.status(404).json({ message: "Video not found" });
+
+      res.json({ 
+        message: `Updated ${updated} videos, marked ${removed} short videos for removal`,
+        updated,
+        removed
+      });
     } catch (error) {
-      console.error("Error testing duration:", error);
-      res.status(500).json({ message: "Failed to test duration" });
+      console.error("Error fixing durations:", error);
+      res.status(500).json({ message: "Failed to fix durations" });
     }
   });
 
