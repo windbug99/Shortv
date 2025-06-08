@@ -106,10 +106,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const channelId = parseInt(req.params.id);
 
+      // Check if this is the last subscriber
+      const subscriberCount = await storage.getChannelSubscriberCount(channelId);
+      
       // Unsubscribe user from channel
       await storage.unsubscribeFromChannel(userId, channelId);
 
-      res.json({ message: "Channel removed successfully" });
+      // If this was the last subscriber, delete the entire channel and its data
+      if (subscriberCount <= 1) {
+        await storage.deleteChannelCompletely(channelId);
+        res.json({ message: "Channel and all data removed successfully" });
+      } else {
+        res.json({ message: "Unsubscribed from channel successfully" });
+      }
     } catch (error) {
       console.error("Error removing channel:", error);
       res.status(500).json({ message: "Failed to remove channel" });

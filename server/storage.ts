@@ -30,6 +30,8 @@ export interface IStorage {
   getChannelByChannelId(channelId: string): Promise<Channel | undefined>;
   updateChannel(id: number, updates: Partial<InsertChannel>): Promise<Channel>;
   deleteChannel(id: number): Promise<void>;
+  getChannelSubscriberCount(channelId: number): Promise<number>;
+  deleteChannelCompletely(channelId: number): Promise<void>;
 
   // Video operations
   createVideo(video: InsertVideo): Promise<Video>;
@@ -113,6 +115,34 @@ export class DatabaseStorage implements IStorage {
 
   async deleteChannel(id: number): Promise<void> {
     await db.delete(channels).where(eq(channels.id, id));
+  }
+
+  async getChannelSubscriberCount(channelId: number): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(userChannelSubscriptions)
+      .where(eq(userChannelSubscriptions.channelId, channelId));
+    return result[0]?.count || 0;
+  }
+
+  async deleteChannelCompletely(channelId: number): Promise<void> {
+    // Delete in correct order to respect foreign key constraints
+    
+    // 1. Delete video upvotes first
+    await db.delete(videoUpvotes).where(
+      sql`video_id IN (SELECT id FROM videos WHERE channel_id = ${channelId})`
+    );
+    
+    // 2. Delete videos
+    await db.delete(videos).where(eq(videos.channelId, channelId));
+    
+    // 3. Delete channel subscriptions
+    await db.delete(userChannelSubscriptions).where(eq(userChannelSubscriptions.channelId, channelId));
+    
+    // 4. Finally delete the channel itself
+    await db.delete(channels).where(eq(channels.id, channelId));
+    
+    console.log(`Completely deleted channel ${channelId} and all related data`);
   }
 
   // Video operations
