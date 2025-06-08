@@ -138,12 +138,19 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
           continue;
         }
         
-        // Get actual video duration from YouTube API
+        // Get actual video duration from YouTube API and filter out short videos
         const videoDuration = await getVideoDuration(video.videoId);
-        if (videoDuration && isDurationTooShort(videoDuration)) {
+        if (!videoDuration) {
+          console.log(`Could not get duration for video: ${video.title}, skipping for safety`);
+          continue;
+        }
+        
+        if (isDurationTooShort(videoDuration)) {
           console.log(`Skipping short video: ${video.title} (${videoDuration})`);
           continue;
         }
+        
+        console.log(`Processing video: ${video.title} (${videoDuration})`);
         
         // Generate AI summary
         const aiSummary = await generateAISummary(video.title, video.description, "introduction");
@@ -244,6 +251,7 @@ function decodeHtmlEntities(text: string): string {
 
 async function getVideoDuration(videoId: string): Promise<string | null> {
   if (!process.env.YOUTUBE_API_KEY) {
+    console.warn(`No YouTube API key available for duration check: ${videoId}`);
     return null;
   }
   
@@ -251,17 +259,24 @@ async function getVideoDuration(videoId: string): Promise<string | null> {
     const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${process.env.YOUTUBE_API_KEY}`;
     const response = await fetch(apiUrl);
     
-    if (response.ok) {
-      const data = await response.json();
-      if (data.items && data.items.length > 0) {
-        return data.items[0].contentDetails.duration;
-      }
+    if (!response.ok) {
+      console.warn(`YouTube API error for ${videoId}: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    if (data.items && data.items.length > 0 && data.items[0].contentDetails) {
+      const duration = data.items[0].contentDetails.duration;
+      console.log(`Got duration for ${videoId}: ${duration}`);
+      return duration;
+    } else {
+      console.warn(`No duration data found for video: ${videoId}`);
+      return null;
     }
   } catch (error) {
     console.warn(`Failed to get video duration for ${videoId}:`, error);
+    return null;
   }
-  
-  return null;
 }
 
 function isDurationTooShort(duration: string): boolean {
