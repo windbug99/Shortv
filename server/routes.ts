@@ -46,14 +46,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(existingChannel);
       }
 
-      // Create new channel
-      const channel = await storage.createChannel(channelData);
+      // Get channel info from YouTube API immediately for new channels
+      let channelName = channelData.name || `Channel_${channelData.channelId}`;
+      let thumbnailUrl: string | undefined;
+      
+      if (process.env.YOUTUBE_API_KEY) {
+        try {
+          const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelData.channelId}&key=${process.env.YOUTUBE_API_KEY}`;
+          const apiResponse = await fetch(apiUrl);
+          
+          if (apiResponse.ok) {
+            const apiData = await apiResponse.json();
+            if (apiData.items && apiData.items.length > 0) {
+              const snippet = apiData.items[0].snippet;
+              channelName = snippet.title;
+              thumbnailUrl = snippet.thumbnails?.high?.url;
+            }
+          }
+        } catch (apiError) {
+          console.warn(`YouTube API failed for new channel ${channelData.channelId}:`, apiError);
+        }
+      }
+
+      // Create new channel with proper YouTube API data
+      const channel = await storage.createChannel({
+        ...channelData,
+        name: channelName,
+        thumbnailUrl
+      });
       
       // Subscribe user to the new channel
       await storage.subscribeToChannel({ userId, channelId: channel.id });
 
-      // Update channel info with real data from YouTube RSS (async)
-      updateChannelInfo(channelData.channelId, channel.id).catch(console.error);
+      // Fallback update if API wasn't available initially
+      if (!thumbnailUrl) {
+        updateChannelInfo(channelData.channelId, channel.id).catch(console.error);
+      }
 
       res.json(channel);
     } catch (error) {
@@ -142,15 +170,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Manual trigger to update all channels (for testing)
+  // Force update all channels with high-quality YouTube API thumbnails
   app.post('/api/channels/update-all', async (req, res) => {
     try {
       const channels = await storage.getChannels();
-      const updatePromises = channels.map(channel => 
-        updateChannelInfo(channel.channelId, channel.id)
-      );
-      await Promise.all(updatePromises);
-      res.json({ message: `Updated ${channels.length} channels` });
+      let updated = 0;
+      
+      for (const channel of channels) {
+        if (process.env.YOUTUBE_API_KEY) {
+          try {
+            const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channel.channelId}&key=${process.env.YOUTUBE_API_KEY}`;
+            const apiResponse = await fetch(apiUrl);
+            
+            if (apiResponse.ok) {
+              const apiData = await apiResponse.json();
+              if (apiData.items && apiData.items.length > 0) {
+                const snippet = apiData.items[0].snippet;
+                const channelInfo = {
+                  name: snippet.title,
+                  thumbnailUrl: snippet.thumbnails?.high?.url,
+                };
+                
+                await storage.updateChannel(channel.id, channelInfo);
+                console.log(`Updated ${channelInfo.name} with high-quality thumbnail`);
+                updated++;
+              }
+            }
+          } catch (apiError) {
+            console.warn(`YouTube API failed for ${channel.channelId}:`, apiError);
+            // Fallback to RSS update
+            await updateChannelInfo(channel.channelId, channel.id);
+            updated++;
+          }
+        } else {
+          // No API key, use RSS fallback
+          await updateChannelInfo(channel.channelId, channel.id);
+          updated++;
+        }
+      }
+      
+      res.json({ message: `Updated ${updated} channels with high-quality thumbnails` });
     } catch (error) {
       console.error("Error updating channels:", error);
       res.status(500).json({ message: "Failed to update channels" });
