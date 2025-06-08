@@ -199,6 +199,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test video duration filtering
+  app.post('/api/test-duration/:videoId', async (req, res) => {
+    try {
+      const { videoId } = req.params;
+      
+      // Test YouTube API duration fetch
+      const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${process.env.YOUTUBE_API_KEY}`;
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        return res.status(400).json({ message: "YouTube API error" });
+      }
+      
+      const data = await response.json();
+      if (data.items && data.items.length > 0) {
+        const duration = data.items[0].contentDetails.duration;
+        
+        // Test duration parsing
+        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+        if (match) {
+          const hours = parseInt(match[1] || "0");
+          const minutes = parseInt(match[2] || "0");
+          const seconds = parseInt(match[3] || "0");
+          const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+          
+          return res.json({
+            videoId,
+            duration,
+            totalSeconds,
+            isShort: totalSeconds <= 60,
+            shouldSkip: totalSeconds <= 60
+          });
+        }
+      }
+      
+      res.status(404).json({ message: "Video not found" });
+    } catch (error) {
+      console.error("Error testing duration:", error);
+      res.status(500).json({ message: "Failed to test duration" });
+    }
+  });
+
   // Force update all channels with high-quality YouTube API thumbnails
   app.post('/api/channels/update-all', async (req, res) => {
     try {

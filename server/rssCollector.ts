@@ -139,13 +139,18 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
         }
         
         // Get actual video duration from YouTube API and filter out short videos
+        console.log(`Checking duration for video: ${video.title} (${video.videoId})`);
         const videoDuration = await getVideoDuration(video.videoId);
+        
         if (!videoDuration) {
           console.log(`Could not get duration for video: ${video.title}, skipping for safety`);
           continue;
         }
         
-        if (isDurationTooShort(videoDuration)) {
+        const isShort = isDurationTooShort(videoDuration);
+        console.log(`Video ${video.title}: duration=${videoDuration}, isShort=${isShort}`);
+        
+        if (isShort) {
           console.log(`Skipping short video: ${video.title} (${videoDuration})`);
           continue;
         }
@@ -156,7 +161,7 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
         const aiSummary = await generateAISummary(video.title, video.description, "introduction");
         const detailedSummary = await generateAISummary(video.title, video.description, "detailed");
         
-        // Save video to database
+        // Save video to database with YouTube API duration
         await storage.createVideo({
           videoId: video.videoId,
           channelId: dbChannelId,
@@ -164,7 +169,7 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
           description: video.description,
           thumbnailUrl: video.thumbnailUrl,
           publishedAt: video.publishedAt,
-          duration: videoDuration || video.duration,
+          duration: videoDuration, // Use only YouTube API duration
           viewCount: 0,
           aiSummary,
           detailedSummary,
