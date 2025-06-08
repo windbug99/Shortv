@@ -1,6 +1,6 @@
 import { storage } from "./storage";
 import { generateAISummary } from "./aiSummarizer";
-import * as cron from "node:cron";
+import * as cron from "node-cron";
 
 interface RSSVideo {
   videoId: string;
