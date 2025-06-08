@@ -14,8 +14,18 @@ export default function Layout({ children }: LayoutProps) {
 
   const navigation = [
     { name: "Home", href: "/", icon: Home, current: location === "/" },
-    { name: "Channel", href: "/channel", icon: Tv, current: location === "/channel" },
-    { name: "Account", href: "/account", icon: User, current: location === "/account" },
+    {
+      name: "Channel",
+      href: "/channel",
+      icon: Tv,
+      current: location === "/channel",
+    },
+    {
+      name: "Account",
+      href: "/account",
+      icon: User,
+      current: location === "/account",
+    },
   ];
 
   return (
@@ -28,9 +38,9 @@ export default function Layout({ children }: LayoutProps) {
             <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
               <Play className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">FeedSumm</span>
+            <span className="text-xl font-bold text-gray-900">ShortV</span>
           </div>
-          
+
           {/* Navigation */}
           <nav className="space-y-2">
             {navigation.map((item) => (
@@ -41,19 +51,21 @@ export default function Layout({ children }: LayoutProps) {
                   "flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-colors",
                   item.current
                     ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                 )}
               >
-                <item.icon className={cn(
-                  "w-5 h-5",
-                  item.current ? "text-gray-600" : "text-gray-400"
-                )} />
+                <item.icon
+                  className={cn(
+                    "w-5 h-5",
+                    item.current ? "text-gray-600" : "text-gray-400",
+                  )}
+                />
                 <span>{item.name}</span>
               </Link>
             ))}
           </nav>
         </div>
-        
+
         {/* User Profile */}
         <div className="absolute bottom-6 left-6 right-6">
           <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -79,9 +91,7 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 ml-60">
-        {children}
-      </div>
+      <div className="flex-1 ml-60">{children}</div>
     </div>
   );
 }
