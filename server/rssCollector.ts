@@ -85,7 +85,7 @@ export async function updateChannelInfo(channelId: string, dbChannelId: number) 
   }
 }
 
-async function collectAllChannelVideos() {
+export async function collectAllChannelVideos() {
   try {
     const channels = await storage.getChannels();
     
@@ -101,7 +101,7 @@ async function collectAllChannelVideos() {
   }
 }
 
-async function collectChannelVideos(channelId: string, dbChannelId: number) {
+export async function collectChannelVideos(channelId: string, dbChannelId: number) {
   try {
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
     

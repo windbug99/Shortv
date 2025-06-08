@@ -17,7 +17,7 @@ export async function generateAISummary(
         : "# 핵심정리\n\nAI 요약 기능을 사용하려면 Gemini API 키가 필요합니다.";
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
     let prompt: string;
 
@@ -29,13 +29,13 @@ export async function generateAISummary(
 설명: ${description}
 
 요구사항:
-- 88자 이상 198자 이하
+- 88자 이상 98자 이하
 - 문어체 사용
 - 핵심 내용만 간결하게 정리
 `;
     } else {
       prompt = `
-다음 YouTube 영상의 제목과 설명을 바탕으로 영상 내용을 핵심주제를 중심으로 요약하고 개조식을 충분히 활용해주세요.
+다음 YouTube 영상내용을 기반으로 핵심주제 중심으로 요약하고 개조식을 충분히 활용해주세요.
 
 제목: ${title}
 설명: ${description}

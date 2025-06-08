@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertChannelSchema, insertVideoUpvoteSchema } from "@shared/schema";
 import { z } from "zod";
-import { initializeRSSCollector, updateChannelInfo } from "./rssCollector";
+import { initializeRSSCollector, updateChannelInfo, collectChannelVideos, collectAllChannelVideos } from "./rssCollector";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -82,6 +82,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!thumbnailUrl) {
         updateChannelInfo(channelData.channelId, channel.id).catch(console.error);
       }
+
+      // Trigger immediate video collection for the new channel
+      collectChannelVideos(channelData.channelId, channel.id).catch(console.error);
 
       res.json(channel);
     } catch (error) {
