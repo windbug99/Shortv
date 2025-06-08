@@ -24,6 +24,34 @@ export function initializeRSSCollector() {
   });
 }
 
+export async function updateChannelInfo(channelId: string, dbChannelId: number) {
+  try {
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    
+    const response = await fetch(rssUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch RSS feed: ${response.status}`);
+    }
+    
+    const xmlText = await response.text();
+    const channelInfo = parseChannelInfo(xmlText);
+    
+    // Update channel info with real data from RSS
+    if (channelInfo.name || channelInfo.thumbnailUrl) {
+      await storage.updateChannel(dbChannelId, {
+        name: channelInfo.name,
+        thumbnailUrl: channelInfo.thumbnailUrl,
+      });
+      console.log(`Updated channel info: ${channelInfo.name}`);
+    }
+    
+    return channelInfo;
+  } catch (error) {
+    console.error(`Error updating channel info for ${channelId}:`, error);
+    return {};
+  }
+}
+
 async function collectAllChannelVideos() {
   try {
     const channels = await storage.getChannels();
@@ -51,6 +79,16 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
     
     const xmlText = await response.text();
     const videos = parseRSSFeed(xmlText);
+    const channelInfo = parseChannelInfo(xmlText);
+    
+    // Update channel info with real data from RSS
+    if (channelInfo.name || channelInfo.thumbnailUrl) {
+      await storage.updateChannel(dbChannelId, {
+        name: channelInfo.name,
+        thumbnailUrl: channelInfo.thumbnailUrl,
+      });
+      console.log(`Updated channel info: ${channelInfo.name}`);
+    }
     
     for (const video of videos) {
       try {
@@ -127,6 +165,22 @@ function parseRSSFeed(xmlText: string): RSSVideo[] {
   }
   
   return videos;
+}
+
+function parseChannelInfo(xmlText: string): { name?: string; thumbnailUrl?: string } {
+  try {
+    const channelName = extractValue(xmlText, /<title>(.*?)<\/title>/);
+    const authorMatch = xmlText.match(/<name>(.*?)<\/name>/);
+    const channelThumbnailMatch = xmlText.match(/<media:thumbnail url="(.*?)"/);
+    
+    return {
+      name: channelName ? decodeHtmlEntities(channelName) : undefined,
+      thumbnailUrl: channelThumbnailMatch ? channelThumbnailMatch[1] : undefined,
+    };
+  } catch (error) {
+    console.error("Error parsing channel info:", error);
+    return {};
+  }
 }
 
 function extractValue(text: string, regex: RegExp): string {

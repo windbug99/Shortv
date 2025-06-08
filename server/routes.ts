@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertChannelSchema, insertVideoUpvoteSchema } from "@shared/schema";
 import { z } from "zod";
-import { initializeRSSCollector } from "./rssCollector";
+import { initializeRSSCollector, updateChannelInfo } from "./rssCollector";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -39,6 +39,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!isSubscribed) {
           await storage.subscribeToChannel({ userId, channelId: existingChannel.id });
         }
+        // Update channel info if it doesn't have proper name (async)
+        if (!existingChannel.name || existingChannel.name.startsWith("Channel_")) {
+          updateChannelInfo(channelData.channelId, existingChannel.id).catch(console.error);
+        }
         return res.json(existingChannel);
       }
 
@@ -47,6 +51,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Subscribe user to the new channel
       await storage.subscribeToChannel({ userId, channelId: channel.id });
+
+      // Update channel info with real data from YouTube RSS (async)
+      updateChannelInfo(channelData.channelId, channel.id).catch(console.error);
 
       res.json(channel);
     } catch (error) {
@@ -132,6 +139,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error toggling upvote:", error);
       res.status(500).json({ message: "Failed to toggle upvote" });
+    }
+  });
+
+  // Manual trigger to update all channels (for testing)
+  app.post('/api/channels/update-all', async (req, res) => {
+    try {
+      const channels = await storage.getChannels();
+      const updatePromises = channels.map(channel => 
+        updateChannelInfo(channel.channelId, channel.id)
+      );
+      await Promise.all(updatePromises);
+      res.json({ message: `Updated ${channels.length} channels` });
+    } catch (error) {
+      console.error("Error updating channels:", error);
+      res.status(500).json({ message: "Failed to update channels" });
     }
   });
 
