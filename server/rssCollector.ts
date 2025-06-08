@@ -26,17 +26,44 @@ export function initializeRSSCollector() {
 
 export async function updateChannelInfo(channelId: string, dbChannelId: number) {
   try {
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    // First try to get channel info from YouTube Data API
+    let channelInfo: { name?: string; thumbnailUrl?: string } = {};
     
-    const response = await fetch(rssUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch RSS feed: ${response.status}`);
+    if (process.env.YOUTUBE_API_KEY) {
+      try {
+        const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${process.env.YOUTUBE_API_KEY}`;
+        const apiResponse = await fetch(apiUrl);
+        
+        if (apiResponse.ok) {
+          const apiData = await apiResponse.json();
+          if (apiData.items && apiData.items.length > 0) {
+            const snippet = apiData.items[0].snippet;
+            channelInfo = {
+              name: snippet.title,
+              thumbnailUrl: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url,
+            };
+            console.log(`Fetched channel info from API: ${channelInfo.name}`);
+          }
+        }
+      } catch (apiError) {
+        console.warn(`YouTube API failed, falling back to RSS: ${apiError}`);
+      }
     }
     
-    const xmlText = await response.text();
-    const channelInfo = parseChannelInfo(xmlText);
+    // Fallback to RSS if API didn't work or no API key
+    if (!channelInfo.name) {
+      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+      const response = await fetch(rssUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch RSS feed: ${response.status}`);
+      }
+      
+      const xmlText = await response.text();
+      const rssChannelInfo = parseChannelInfo(xmlText);
+      channelInfo = rssChannelInfo;
+    }
     
-    // Update channel info with real data from RSS
+    // Update channel info with real data
     if (channelInfo.name || channelInfo.thumbnailUrl) {
       await storage.updateChannel(dbChannelId, {
         name: channelInfo.name,
@@ -81,7 +108,7 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
     const videos = parseRSSFeed(xmlText);
     const channelInfo = parseChannelInfo(xmlText);
     
-    // Update channel info with real data from RSS
+    // Update channel info with real data from YouTube API
     if (channelInfo.name || channelInfo.thumbnailUrl) {
       await storage.updateChannel(dbChannelId, {
         name: channelInfo.name,
@@ -98,8 +125,10 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
           continue;
         }
         
-        // Check video duration (skip if 1 minute or less)
-        if (isDurationTooShort(video.duration)) {
+        // Get actual video duration from YouTube API
+        const videoDuration = await getVideoDuration(video.videoId);
+        if (videoDuration && isDurationTooShort(videoDuration)) {
+          console.log(`Skipping short video: ${video.title} (${videoDuration})`);
           continue;
         }
         
@@ -115,7 +144,7 @@ async function collectChannelVideos(channelId: string, dbChannelId: number) {
           description: video.description,
           thumbnailUrl: video.thumbnailUrl,
           publishedAt: video.publishedAt,
-          duration: video.duration,
+          duration: videoDuration || video.duration,
           viewCount: 0,
           aiSummary,
           detailedSummary,
@@ -200,20 +229,43 @@ function decodeHtmlEntities(text: string): string {
   return text.replace(/&[#\w]+;/g, (entity) => entities[entity] || entity);
 }
 
+async function getVideoDuration(videoId: string): Promise<string | null> {
+  if (!process.env.YOUTUBE_API_KEY) {
+    return null;
+  }
+  
+  try {
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${process.env.YOUTUBE_API_KEY}`;
+    const response = await fetch(apiUrl);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.items && data.items.length > 0) {
+        return data.items[0].contentDetails.duration;
+      }
+    }
+  } catch (error) {
+    console.warn(`Failed to get video duration for ${videoId}:`, error);
+  }
+  
+  return null;
+}
+
 function isDurationTooShort(duration: string): boolean {
-  // Parse duration in format like "PT1M30S" or "PT2M"
-  if (!duration || duration === "00:00") {
+  // Parse duration in ISO 8601 format like "PT1M30S" or "PT2M" or "PT45S"
+  if (!duration) {
     return false; // Unknown duration, allow it
   }
   
-  const match = duration.match(/PT(?:(\d+)M)?(?:(\d+)S)?/);
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) {
     return false;
   }
   
-  const minutes = parseInt(match[1] || "0");
-  const seconds = parseInt(match[2] || "0");
-  const totalSeconds = minutes * 60 + seconds;
+  const hours = parseInt(match[1] || "0");
+  const minutes = parseInt(match[2] || "0");
+  const seconds = parseInt(match[3] || "0");
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
   
   return totalSeconds <= 60; // 1 minute or less
 }
