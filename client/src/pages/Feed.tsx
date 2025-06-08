@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Share, ExternalLink, ThumbsUp } from "lucide-react";
@@ -19,6 +20,16 @@ export default function Feed() {
   });
 
   const video = videos?.find((v: any) => v.id.toString() === videoId);
+
+  const incrementViewMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/videos/${videoId}/view`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/videos/feed"] });
+    },
+  });
 
   const upvoteMutation = useMutation({
     mutationFn: async () => {
@@ -51,6 +62,13 @@ export default function Feed() {
       });
     },
   });
+
+  // Increment view count when page loads
+  useEffect(() => {
+    if (videoId && video) {
+      incrementViewMutation.mutate();
+    }
+  }, [videoId, video?.id]);
 
   const handleShare = () => {
     if (navigator.share) {

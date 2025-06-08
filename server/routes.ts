@@ -138,10 +138,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Video not found" });
       }
 
-      res.json(video);
+      // Increment view count when video is accessed
+      await storage.updateVideo(videoId, { 
+        viewCount: (video.viewCount || 0) + 1 
+      });
+
+      // Return updated video with new view count
+      const updatedVideo = { ...video, viewCount: (video.viewCount || 0) + 1 };
+      res.json(updatedVideo);
     } catch (error) {
       console.error("Error fetching video:", error);
       res.status(500).json({ message: "Failed to fetch video" });
+    }
+  });
+
+  // Dedicated endpoint to increment view count
+  app.post('/api/videos/:id/view', async (req, res) => {
+    try {
+      const videoId = parseInt(req.params.id);
+      const videos = await storage.getVideos();
+      const video = videos.find(v => v.id === videoId);
+      
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+
+      // Increment view count
+      const newViewCount = (video.viewCount || 0) + 1;
+      await storage.updateVideo(videoId, { viewCount: newViewCount });
+
+      res.json({ viewCount: newViewCount });
+    } catch (error) {
+      console.error("Error updating view count:", error);
+      res.status(500).json({ message: "Failed to update view count" });
     }
   });
 

@@ -58,7 +58,20 @@ export default function VideoCard({ video }: VideoCardProps) {
     },
   });
 
+  const incrementViewMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/videos/${video.id}/view`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidate feed cache to show updated view count
+      queryClient.invalidateQueries({ queryKey: ["/api/videos/feed"] });
+    },
+  });
+
   const handleCardClick = () => {
+    // Increment view count when navigating to video detail
+    incrementViewMutation.mutate();
     setLocation(`/feed/${video.id}`);
   };
 
