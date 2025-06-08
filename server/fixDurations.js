@@ -1,8 +1,6 @@
 // Script to fix video durations using YouTube Data API
-const { Pool } = require('@neondatabase/serverless');
-const ws = require('ws');
-
-const neonConfig = require('@neondatabase/serverless').neonConfig;
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 neonConfig.webSocketConstructor = ws;
 
 async function fixVideoDurations() {
