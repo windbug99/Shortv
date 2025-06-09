@@ -12,7 +12,7 @@ export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  const navigation = [
+  const mainNavigation = [
     { name: "Home", href: "/", icon: Home, current: location === "/" },
     {
       name: "Channel",
@@ -20,18 +20,19 @@ export default function Layout({ children }: LayoutProps) {
       icon: Tv,
       current: location === "/channel",
     },
-    {
-      name: "Account",
-      href: "/account",
-      icon: User,
-      current: location === "/account",
-    },
   ];
+
+  const accountNavigation = {
+    name: "Account",
+    href: "/account",
+    icon: User,
+    current: location === "/account",
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-16 bg-white border-r border-gray-200 fixed h-full z-10">
+      <div className="w-16 bg-white border-r border-gray-200 fixed h-full z-10 flex flex-col">
         <div className="p-3">
           {/* Logo */}
           <div className="flex items-center justify-center mb-8">
@@ -39,10 +40,12 @@ export default function Layout({ children }: LayoutProps) {
               <Play className="w-4 h-4 text-white" />
             </div>
           </div>
+        </div>
 
-          {/* Navigation */}
-          <nav className="space-y-2">
-            {navigation.map((item) => (
+        {/* Main Navigation - Centered */}
+        <div className="flex-1 flex flex-col justify-center">
+          <nav className="space-y-2 px-3">
+            {mainNavigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -65,19 +68,25 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
 
-        {/* User Profile */}
-        <div className="absolute bottom-6 left-3">
-          {/*
-          <div className="w-10 h-10 bg-gray-300 rounded-full overflow-hidden">
-            {user?.profileImageUrl && (
-              <img
-                src={user.profileImageUrl}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
+        {/* Account Navigation - Bottom */}
+        <div className="p-3">
+          <Link
+            href={accountNavigation.href}
+            title={accountNavigation.name}
+            className={cn(
+              "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
+              accountNavigation.current
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
             )}
-          </div>
-          */}
+          >
+            <accountNavigation.icon
+              className={cn(
+                "w-5 h-5",
+                accountNavigation.current ? "text-gray-600" : "text-gray-400",
+              )}
+            />
+          </Link>
         </div>
       </div>
 
