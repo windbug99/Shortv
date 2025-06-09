@@ -61,7 +61,7 @@ export default function Account() {
                 <Input
                   id="email"
                   type="email"
-                  value={user?.email || ""}
+                  value={(user as any)?.email || ""}
                   readOnly
                   className="flex-1 bg-gray-50"
                 />

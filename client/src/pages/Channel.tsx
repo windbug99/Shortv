@@ -104,7 +104,7 @@ export default function Channel() {
         </Button>
       </div>
       
-      {!channels || channels.length === 0 ? (
+      {!channels || (Array.isArray(channels) ? channels.length === 0 : true) ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">구독 중인 채널이 없습니다.</p>
           <p className="text-sm text-gray-400 mb-6">
@@ -120,7 +120,7 @@ export default function Channel() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {channels.map((channel: any) => (
+          {Array.isArray(channels) && channels.map((channel: any) => (
             <ChannelCard
               key={channel.id}
               channel={channel}
