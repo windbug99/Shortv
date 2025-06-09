@@ -7,6 +7,7 @@ import { ArrowLeft, Share, ExternalLink, ThumbsUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { formatDuration } from "@/lib/utils";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -166,7 +167,7 @@ export default function Feed() {
                 <h3 className="font-medium text-gray-900">{video.channel.name}</h3>
                 <p className="text-sm text-gray-500">
                   {formatTimeAgo(video.publishedAt)} • 
-                  {video.duration && ` ${video.duration} • `}
+                  {video.duration && ` ${formatDuration(video.duration)} • `}
                   조회수 {video.viewCount?.toLocaleString() || 0}회
                 </p>
               </div>
