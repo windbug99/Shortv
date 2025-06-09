@@ -48,10 +48,10 @@ async function handleDeletedChannel(channelId: string, dbChannelId: number) {
       await storage.deleteVideosByChannel(dbChannelId);
     }
     
-    // Update channel status or optionally remove completely
-    // For now, we'll keep the channel but mark it as unavailable
+    // Update channel status to indicate it's been deleted
+    const cleanChannelName = channelName.replace(/^\[DELETED\]\s*/, '');
     await storage.updateChannel(dbChannelId, { 
-      name: `[DELETED] ${channelName}`,
+      name: `[DELETED] ${cleanChannelName}`,
       lastUpdate: new Date()
     });
     

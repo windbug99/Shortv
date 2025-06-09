@@ -129,7 +129,6 @@ export const userChannelSubscriptionsRelations = relations(
 export const insertChannelSchema = createInsertSchema(channels).omit({
   id: true,
   createdAt: true,
-  lastUpdate: true,
 });
 
 export const insertVideoSchema = createInsertSchema(videos).omit({
