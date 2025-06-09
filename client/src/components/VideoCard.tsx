@@ -151,7 +151,7 @@ export default function VideoCard({ video }: VideoCardProps) {
         </div>
         
         {/* AI Summary */}
-        <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+        <p className="text-sm text-gray-600 leading-relaxed">
           {video.aiSummary || "AI 요약이 생성 중입니다..."}
         </p>
       </CardContent>
