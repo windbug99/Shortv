@@ -50,6 +50,9 @@ export async function generateAISummary(
 - 영상 전체를 요약할 것
 - 시간의 흐름에 따라 핵심내용을 도출할 것
 - 마크다운 형식으로 작성하고 필요시 개조식, 볼드 활용
+- 타임스탬프 생성 시 URL의 "?v=" 뒤에 videoID 값을 추가하여 "&t=" 123s 형식으로 작성
+- 영상 URL 구조: https://www.youtube.com/watch?v=[videoID]
+- 타임스탬프 구조: https://www.youtube.com/watch?v=[videoID]&t=[seconds]
 
 출력 형식:
 # 핵심정리
@@ -58,7 +61,7 @@ export async function generateAISummary(
 
 ### 핵심내용 2
 
-### 시사점
+# 시사점
 내용 요약
 `;
     }
