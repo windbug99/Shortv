@@ -39,8 +39,10 @@ export async function generateAISummary(
     let prompt: string;
 
     if (type === "introduction") {
-      const transcriptText = transcript ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}` : "";
-      
+      const transcriptText = transcript
+        ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}`
+        : "";
+
       prompt = `
 다음 YouTube 영상의 제목과 스크립트를 기반으로 핵심주제를 정확히 88자 이상 98자 이하로 요약해 문어체로 작성해주세요.
 
@@ -66,23 +68,30 @@ export async function generateAISummary(
       const transcriptContent =
         transcriptChunks.length > 0 ? transcriptChunks[0] : transcript;
 
-      const analysisBase = transcript ? "실제 스크립트를 바탕으로" : "제목과 설명을 바탕으로";
-      const transcriptSection = transcript ? `\n영상 스크립트: ${transcriptContent}` : '';
-      const contentRequirement = transcript ? '실제 스크립트 내용을 기반으로' : '';
-      const specificContent = transcript ? '스크립트에서 언급된 구체적인 내용과 주요 포인트를 포함할 것' : '';
-      
+      const analysisBase = transcript
+        ? "실제 스크립트를 바탕으로"
+        : "제목과 설명을 바탕으로";
+      const transcriptSection = transcript
+        ? `\n영상 스크립트: ${transcriptContent}`
+        : "";
+      const contentRequirement = transcript
+        ? "실제 스크립트 내용을 기반으로"
+        : "";
+      const specificContent = transcript
+        ? "스크립트에서 언급된 구체적인 내용과 주요 포인트를 포함할 것"
+        : "";
+
       prompt = `
 다음 YouTube 영상의 전체 스크립트를 기반으로 시간의 흐름에 따라 체계적인 핵심정리를 작성해주세요.
 
-영상 ID: ${videoId || 'unknown'}
+영상 ID: ${videoId || "unknown"}
 제목: ${title}
 설명: ${description}${transcriptSection}
 
 핵심정리 작성 원칙:
 - 전체 스크립트 기반으로 언급된 내용에 기반해서 시간의 흐름대로 요약정리
 - 단락을 구분하고 그 안에 주요주제를 도출하고 관련 내용을 요약
-- 주요주제가 언급되는 타임스탬프를 출력 (예: [03:45])
-- 스크립트에서 언급된 구체적인 사실, 데이터, 예시를 정확히 반영
+- 스크립트에서 언급된 핵심키워드, 구체적인 사실, 데이터, 예시를 정확히 반영
 - 시간 순서에 따라 내용을 구조화하여 정리
 - 마크다운 형식 사용, 필요시 볼드와 리스트 활용
 - 한국어 문어체로 작성
@@ -90,34 +99,22 @@ export async function generateAISummary(
 출력 형식 (반드시 준수):
 # 핵심정리
 
-## 개요
-영상의 전반적인 주제와 목적을 간략히 요약
-
-## 시간순 주요 내용
-
-### 1. [00:00-xx:xx] [첫 번째 단락의 주요주제]
-- **[타임스탬프]** 해당 시점에서 언급된 핵심 내용
-- **[타임스탬프]** 관련 데이터나 예시
+### 1. [첫 번째 단락의 주요주제]
+- 해당 시점에서 언급된 핵심 내용
+- 관련 데이터나 예시
 - 단락 내 주요 포인트 요약
 
-### 2. [xx:xx-xx:xx] [두 번째 단락의 주요주제]
-- **[타임스탬프]** 해당 시점에서 언급된 핵심 내용
-- **[타임스탬프]** 관련 데이터나 예시
+### 2. [두 번째 단락의 주요주제]
+- 해당 시점에서 언급된 핵심 내용
+- 관련 데이터나 예시
 - 단락 내 주요 포인트 요약
 
-### 3. [xx:xx-xx:xx] [세 번째 단락의 주요주제]
+### 3. [세 번째 단락의 주요주제]
 (스크립트 길이에 따라 단락 수는 조정 가능)
 
 ## 핵심 결론
 - 영상에서 전달하고자 하는 주요 메시지
 - 시청자가 얻을 수 있는 주요 인사이트
-- 실용적 활용 방안이나 시사점
-
-주의사항: 
-- 각 주요 내용에 반드시 타임스탬프를 포함해야 함
-- 타임스탬프는 [mm:ss] 또는 [hh:mm:ss] 형식으로 표기
-- 시간의 흐름에 따라 순차적으로 정리
-- 동일한 주제라도 시간대가 다르면 별도 항목으로 구분
 `;
     }
 
