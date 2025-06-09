@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { extractVideoTranscript, preprocessTranscript, chunkTranscript } from "./transcriptExtractor";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -8,6 +9,7 @@ export async function generateAISummary(
   title: string,
   description: string,
   type: "introduction" | "detailed",
+  videoId?: string,
 ): Promise<string> {
   try {
     if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_AI_API_KEY) {
@@ -20,6 +22,15 @@ export async function generateAISummary(
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-lite",
     });
+
+    // Try to extract video transcript for better analysis
+    let transcript = null;
+    if (videoId) {
+      transcript = await extractVideoTranscript(videoId);
+      if (transcript) {
+        transcript = preprocessTranscript(transcript);
+      }
+    }
 
     let prompt: string;
 
