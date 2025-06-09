@@ -141,7 +141,7 @@ export default function VideoCard({ video }: VideoCardProps) {
             size="sm"
             onClick={handleUpvote}
             disabled={upvoteMutation.isPending}
-            className="justify-center gap-2 whitespace-nowrap font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground h-9 flex items-center space-x-1 px-2 py-1 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50 pt-[2px] pb-[2px] pl-[12px] pr-[12px] text-[14px]"
+            className="justify-center gap-2 whitespace-nowrap font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground !h-[1.8rem] flex items-center space-x-1 px-2 py-0.5 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50 text-[14px]"
           >
             <CircleArrowUp 
               className={`w-3 h-3 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
