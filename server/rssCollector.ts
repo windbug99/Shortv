@@ -163,9 +163,9 @@ export async function collectChannelVideos(channelId: string, dbChannelId: numbe
         
         console.log(`Processing video: ${video.title} (${videoDuration})`);
         
-        // Generate AI summary
-        const aiSummary = await generateAISummary(video.title, video.description, "introduction");
-        const detailedSummary = await generateAISummary(video.title, video.description, "detailed");
+        // Generate AI summary with video transcript
+        const aiSummary = await generateAISummary(video.title, video.description, "introduction", video.videoId);
+        const detailedSummary = await generateAISummary(video.title, video.description, "detailed", video.videoId);
         
         // Save video to database with YouTube API duration
         await storage.createVideo({
