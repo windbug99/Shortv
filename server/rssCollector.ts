@@ -14,20 +14,15 @@ interface RSSVideo {
 export function initializeRSSCollector() {
   console.log("Initializing RSS collector...");
   
-  // Delay initial run to allow database connection to stabilize
-  setTimeout(() => {
-    collectAllChannelVideos().catch(error => {
-      console.error("Error in initial RSS collection:", error);
-    });
-  }, 5000);
-  
-  // Schedule to run every hour
+  // Schedule to run every hour (but don't run initial collection)
   cron.schedule("0 * * * *", () => {
     console.log("Running scheduled RSS collection...");
     collectAllChannelVideos().catch(error => {
       console.error("Error in scheduled RSS collection:", error);
     });
   });
+  
+  console.log("RSS collector scheduled successfully");
 }
 
 async function handleDeletedChannel(channelId: string, dbChannelId: number) {
