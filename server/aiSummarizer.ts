@@ -17,7 +17,9 @@ export async function generateAISummary(
         : "# 핵심정리\n\nAI 요약 기능을 사용하려면 Gemini API 키가 필요합니다.";
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-preview-05-20",
+    });
 
     let prompt: string;
 
@@ -35,32 +37,24 @@ export async function generateAISummary(
 `;
     } else {
       prompt = `
-다음 YouTube 영상내용 전체를 핵심주제 중심으로 요약
+다음 YouTube 영상내용 전체를 타임라인에 따라 핵심내용을 요약
 
 제목: ${title}
 설명: ${description}
 
 요구사항:
-- 핵심내용을 중심으로 구조화된 요약
-- 개조식(불릿 포인트) 활용
+- 타임라인에 따라 핵심내용 중심으로 요약
+- 필요시 개조식(불릿 포인트) 활용
 - 마크다운 형식으로 작성
-- 주요 섹션별로 구분
-- 실용적이고 이해하기 쉬운 내용
-- 주요 내용 앞에는 시작시간 타임스탬프를 출력하고 시작시간 포함한 영상링크 연결(타임스탬프 URL은 https://www.youtube.com/watch?v=영상ID&t=시작시간s 형식으로 작성)
 
 출력 형식:
 # 핵심정리
 
-## [타임스탬프]: 주요 내용 1
-- 요점 1
-- 요점 2
-- 요점 3
+### 핵심내용 1
 
-## [타임스탬프]: 주요 내용 2
-- 요점 1
-- 요점 2
+### 핵심내용 2
 
-## 핵심 시사점
+### 시사점
 내용 요약
 `;
     }
