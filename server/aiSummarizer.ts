@@ -1,5 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { extractVideoTranscript, preprocessTranscript, chunkTranscript } from "./transcriptExtractor";
+import {
+  extractVideoTranscript,
+  preprocessTranscript,
+  chunkTranscript,
+} from "./transcriptExtractor";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -36,49 +40,60 @@ export async function generateAISummary(
 
     if (type === "introduction") {
       prompt = `
-다음 YouTube 영상의 ${transcript ? '스크립트를 기반으로' : '제목과 설명을 바탕으로'} 핵심주제를 정확히 88자 이상 98자 이하로 요약해 문어체로 작성해주세요.
+다음 YouTube 영상의 ${transcript ? "스크립트를 기반으로" : "제목과 설명을 바탕으로"} 핵심주제를 정확히 88자 이상 98자 이하로 요약해 문어체로 작성해주세요.
 
 제목: ${title}
 설명: ${description}
-${transcript ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? '...' : ''}` : ''}
+${transcript ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}` : ""}
 
 중요한 제약사항:
 - 반드시 88자 이상 98자 이하여야 함 (공백 포함)
 - 98자를 초과하면 안 됨 (절대적 제한)
 - 문어체 사용 필수
-- ${transcript ? '스크립트의 실제 내용을 반영하여' : ''} 핵심 내용만 간결하게 정리
+- ${transcript ? "스크립트의 실제 내용을 반영하여" : ""} 핵심 내용만 간결하게 정리
 - 응답 전 글자 수를 직접 세어서 확인할 것
+- 98자를 초과하면 문장을 줄여서 다시 작성할 것
 
-예시 길이 참고: "이 영상은 YouTube 채널 구독과 AI 요약 기능을 통해 개인화된 비디오 피드를 제공하는 혁신적인 플랫폼의 사용법과 주요 특징들을 상세히 소개하는 튜토리얼입니다." (98자)
+정확한 길이 예시:
+88자: "이 영상은 YouTube 채널 구독과 AI 요약 기능을 통해 개인화된 비디오 피드를 제공하는 혁신적인 플랫폼의 사용법을 소개한다."
+98자: "이 영상은 YouTube 채널 구독과 AI 요약 기능을 통해 개인화된 비디오 피드를 제공하는 혁신적인 플랫폼의 사용법과 주요 특징들을 상세히 소개하는 튜토리얼입니다."
 `;
     } else {
-      const transcriptChunks = transcript ? chunkTranscript(transcript, 6000) : [];
-      const transcriptContent = transcriptChunks.length > 0 ? transcriptChunks[0] : transcript;
-      
-      prompt = `
-다음 YouTube 영상을 ${transcript ? '실제 스크립트를 바탕으로' : '제목과 설명을 바탕으로'} 타임라인에 따라 핵심내용을 요약
+      const transcriptChunks = transcript
+        ? chunkTranscript(transcript, 6000)
+        : [];
+      const transcriptContent =
+        transcriptChunks.length > 0 ? transcriptChunks[0] : transcript;
 
+      prompt = `
+다음 YouTube 영상을 ${transcript ? "실제 스크립트를 바탕으로" : "제목과 설명을 바탕으로"} 타임라인에 따라 내용을 요약정리
+
+영상 ID: ${videoId || 'unknown'}
 제목: ${title}
 설명: ${description}
 ${transcript ? `\n영상 스크립트: ${transcriptContent}` : ''}
 
-요구사항:
-- ${transcript ? '실제 스크립트 내용을 기반으로' : ''} 영상 전체를 요약할 것
+중요한 요구사항:
+- ${transcript ? '실제 스크립트 내용을 기반으로' : ''} 영상 전체를 체계적으로 요약할 것
 - 시간의 흐름에 따라 핵심내용을 도출할 것
 - ${transcript ? '스크립트에서 언급된 구체적인 내용과 주요 포인트를 포함할 것' : ''}
 - 마크다운 형식으로 작성하고 필요시 개조식, 볼드 활용
+- 타임스탬프는 정확한 YouTube URL 형식으로 작성: https://www.youtube.com/watch?v=${videoId || '[VIDEO_ID]'}&t=[초]s
 
-출력 형식:
+출력 형식 (반드시 준수):
 # 핵심정리
 
-### 핵심내용 1
-${transcript ? '(스크립트 기반 구체적 내용)' : ''}
+### 00:00-01:30 | 섹션 제목
+- https://www.youtube.com/watch?v=${videoId || '[VIDEO_ID]'}&t=0s
+- 내용 요약
+- **중요 포인트 강조**
 
-### 핵심내용 2
-${transcript ? '(스크립트 기반 구체적 내용)' : ''}
+### 01:30-03:00 | 섹션 제목  
+- https://www.youtube.com/watch?v=${videoId || '[VIDEO_ID]'}&t=90s
+- 내용 요약
 
 ### 시사점
-${transcript ? '스크립트 분석을 통한' : ''} 내용 요약
+스크립트 분석을 통한 핵심 메시지와 의미
 `;
     }
 
