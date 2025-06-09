@@ -35,7 +35,7 @@ export async function generateAISummary(
 `;
     } else {
       prompt = `
-다음 YouTube 영상내용을 기반으로 핵심주제 중심으로 요약하고 개조식을 충분히 활용해주세요.
+다음 YouTube 영상내용 전체를 핵심주제 중심으로 요약
 
 제목: ${title}
 설명: ${description}
@@ -46,7 +46,7 @@ export async function generateAISummary(
 - 마크다운 형식으로 작성
 - 주요 섹션별로 구분
 - 실용적이고 이해하기 쉬운 내용
-- 주요 내용 앞에는 시작시간 타임스탬프를 출력하고 시작시간 포함한 영상링크 연결
+- 주요 내용 앞에는 시작시간 타임스탬프를 출력하고 시작시간 포함한 영상링크 연결(타임스탬프 URL은 https://www.youtube.com/watch?v=영상ID&t=시작시간s 형식으로 작성)
 
 출력 형식:
 # 핵심정리

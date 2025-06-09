@@ -31,14 +31,13 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-60 bg-white border-r border-gray-200 fixed h-full z-10">
-        <div className="p-6">
+      <div className="w-16 bg-white border-r border-gray-200 fixed h-full z-10">
+        <div className="p-3">
           {/* Logo */}
-          <div className="flex items-center space-x-3 mb-8">
+          <div className="flex items-center justify-center mb-8">
             <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
               <Play className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">ShortV</span>
           </div>
 
           {/* Navigation */}
@@ -47,8 +46,9 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                title={item.name}
                 className={cn(
-                  "flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-colors",
+                  "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
                   item.current
                     ? "bg-gray-100 text-gray-900"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
@@ -60,38 +60,29 @@ export default function Layout({ children }: LayoutProps) {
                     item.current ? "text-gray-600" : "text-gray-400",
                   )}
                 />
-                <span>{item.name}</span>
               </Link>
             ))}
           </nav>
         </div>
 
         {/* User Profile */}
-        <div className="absolute bottom-6 left-6 right-6">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <div className="w-8 h-8 bg-gray-300 rounded-full overflow-hidden">
-              {user?.profileImageUrl ? (
-                <img
-                  src={user.profileImageUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-300" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.email || "사용자"}
-              </p>
-              <p className="text-xs text-gray-500">온라인</p>
-            </div>
+        <div className="absolute bottom-6 left-3">
+          <div className="w-10 h-10 bg-gray-300 rounded-full overflow-hidden">
+            {user?.profileImageUrl ? (
+              <img
+                src={user.profileImageUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-300" />
+            )}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 ml-60">{children}</div>
+      <div className="flex-1 ml-16">{children}</div>
     </div>
   );
 }
