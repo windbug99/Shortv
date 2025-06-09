@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import findChannelIdVideo from "@assets/find-channel-id_1749480712387.mp4";
 
 interface AddChannelModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface AddChannelModalProps {
 
 export default function AddChannelModal({ open, onOpenChange }: AddChannelModalProps) {
   const [channelId, setChannelId] = useState("");
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const { toast } = useToast();
 
   const addChannelMutation = useMutation({
@@ -98,7 +100,14 @@ export default function AddChannelModal({ open, onOpenChange }: AddChannelModalP
               className="mt-1"
             />
             <p className="text-xs text-gray-500 mt-1">
-              YouTube 채널의 Channel ID를 입력하세요 (UC로 시작하는 24자리)
+              <button
+                type="button"
+                onClick={() => setVideoModalOpen(true)}
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                YouTube 채널의 Channel ID
+              </button>
+              를 입력하세요 (UC로 시작하는 24자리)
             </p>
           </div>
           
@@ -121,6 +130,33 @@ export default function AddChannelModal({ open, onOpenChange }: AddChannelModalP
           </div>
         </form>
       </DialogContent>
+      
+      {/* Video Tutorial Modal */}
+      <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>YouTube 채널 ID 찾는 방법</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video w-full">
+            <video
+              src={findChannelIdVideo}
+              controls
+              className="w-full h-full rounded-lg"
+              autoPlay
+            >
+              브라우저가 비디오를 지원하지 않습니다.
+            </video>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              onClick={() => setVideoModalOpen(false)}
+              variant="outline"
+            >
+              닫기
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
