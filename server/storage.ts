@@ -39,6 +39,8 @@ export interface IStorage {
   getVideosByChannel(channelId: number): Promise<Video[]>;
   getVideoByVideoId(videoId: string): Promise<Video | undefined>;
   updateVideo(id: number, updates: Partial<InsertVideo>): Promise<Video>;
+  deleteVideo(id: number): Promise<void>;
+  deleteVideosByChannel(channelId: number): Promise<void>;
 
   // Video upvote operations
   getUserVideoUpvote(userId: string, videoId: number): Promise<VideoUpvote | undefined>;
@@ -178,6 +180,26 @@ export class DatabaseStorage implements IStorage {
       .where(eq(videos.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteVideo(id: number): Promise<void> {
+    // Delete video upvotes first
+    await db.delete(videoUpvotes).where(eq(videoUpvotes.videoId, id));
+    
+    // Delete the video
+    await db.delete(videos).where(eq(videos.id, id));
+  }
+
+  async deleteVideosByChannel(channelId: number): Promise<void> {
+    // Delete video upvotes first
+    await db.delete(videoUpvotes).where(
+      sql`video_id IN (SELECT id FROM videos WHERE channel_id = ${channelId})`
+    );
+    
+    // Delete all videos from the channel
+    await db.delete(videos).where(eq(videos.channelId, channelId));
+    
+    console.log(`Deleted all videos for channel ${channelId}`);
   }
 
   // Video upvote operations

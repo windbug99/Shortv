@@ -30,6 +30,37 @@ export function initializeRSSCollector() {
   });
 }
 
+async function handleDeletedChannel(channelId: string, dbChannelId: number) {
+  try {
+    console.log(`Handling deleted/unavailable channel: ${channelId} (DB ID: ${dbChannelId})`);
+    
+    // Get channel info for logging
+    const channels = await storage.getChannels();
+    const channel = channels.find(c => c.id === dbChannelId);
+    const channelName = channel?.name || `Channel ${channelId}`;
+    
+    // Get videos count before deletion
+    const videos = await storage.getVideosByChannel(dbChannelId);
+    const videoCount = videos.length;
+    
+    if (videoCount > 0) {
+      console.log(`Deleting ${videoCount} videos from removed channel: ${channelName}`);
+      await storage.deleteVideosByChannel(dbChannelId);
+    }
+    
+    // Update channel status or optionally remove completely
+    // For now, we'll keep the channel but mark it as unavailable
+    await storage.updateChannel(dbChannelId, { 
+      name: `[DELETED] ${channelName}`,
+      lastUpdate: new Date()
+    });
+    
+    console.log(`Successfully cleaned up ${videoCount} videos from deleted channel: ${channelName}`);
+  } catch (error) {
+    console.error(`Error handling deleted channel ${channelId}:`, error);
+  }
+}
+
 export async function updateChannelInfo(channelId: string, dbChannelId: number) {
   try {
     // First try to get channel info from YouTube Data API
@@ -94,6 +125,16 @@ export async function collectAllChannelVideos() {
         await collectChannelVideos(channel.channelId, channel.id);
       } catch (error) {
         console.error(`Error collecting videos for channel ${channel.name}:`, error);
+        
+        // If it's a network error or channel unavailable, try to handle it
+        if (error instanceof Error && (
+          error.message.includes('404') || 
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('terminated')
+        )) {
+          console.log(`Attempting to clean up potentially deleted channel: ${channel.name}`);
+          await handleDeletedChannel(channel.channelId, channel.id);
+        }
       }
     }
   } catch (error) {
@@ -107,10 +148,26 @@ export async function collectChannelVideos(channelId: string, dbChannelId: numbe
     
     const response = await fetch(rssUrl);
     if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`Channel ${channelId} appears to be deleted or unavailable (404). Cleaning up videos...`);
+        await handleDeletedChannel(channelId, dbChannelId);
+        return;
+      }
       throw new Error(`Failed to fetch RSS feed: ${response.status}`);
     }
     
     const xmlText = await response.text();
+    
+    // Check if the RSS feed indicates the channel is terminated or unavailable
+    if (xmlText.includes('This channel does not exist') || 
+        xmlText.includes('channel has been terminated') ||
+        xmlText.includes('account associated with this channel has been terminated') ||
+        xmlText.length < 100) { // Very short response usually indicates an error
+      console.log(`Channel ${channelId} appears to be terminated or unavailable. Cleaning up videos...`);
+      await handleDeletedChannel(channelId, dbChannelId);
+      return;
+    }
+    
     const videos = parseRSSFeed(xmlText);
     const channelInfo = parseChannelInfo(xmlText);
     
