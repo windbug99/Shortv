@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Share, ExternalLink, ThumbsUp } from "lucide-react";
+import { ArrowLeft, Share, ExternalLink } from "lucide-react";
+import { CircleArrowUp } from "@/components/ui/circle-arrow-up";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -171,17 +172,23 @@ export default function Feed() {
                   조회수 {video.viewCount?.toLocaleString() || 0}회
                 </p>
               </div>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => upvoteMutation.mutate()}
                   disabled={upvoteMutation.isPending}
-                  className={video.userUpvoted ? "text-blue-500" : "text-gray-400"}
+                  className={`flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors ${
+                    video.userUpvoted 
+                      ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100" 
+                      : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
                 >
-                  <ThumbsUp className="w-4 h-4" />
+                  <CircleArrowUp 
+                    className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
+                  />
+                  <span className="text-sm font-medium">{video.upvoteCount || 0}</span>
                 </Button>
-                <span className="text-sm text-gray-600">{video.upvoteCount || 0}</span>
               </div>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">{video.title}</h1>

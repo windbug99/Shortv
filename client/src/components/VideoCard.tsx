@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp } from "lucide-react";
+import { CircleArrowUp } from "@/components/ui/circle-arrow-up";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -135,20 +135,24 @@ export default function VideoCard({ video }: VideoCardProps) {
         </h3>
         
         {/* Metadata */}
-        <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+        <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
           <span>조회수 {video.viewCount?.toLocaleString() || 0}회</span>
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleUpvote}
-              disabled={upvoteMutation.isPending}
-              className={`p-0 h-auto ${video.userUpvoted ? "text-blue-500" : "text-gray-400"} hover:text-blue-500`}
-            >
-              <ThumbsUp className="w-4 h-4" />
-            </Button>
-            <span>{video.upvoteCount || 0}</span>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUpvote}
+            disabled={upvoteMutation.isPending}
+            className={`flex items-center space-x-1 px-2 py-1 border rounded-md transition-colors ${
+              video.userUpvoted 
+                ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100" 
+                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <CircleArrowUp 
+              className={`w-3 h-3 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
+            />
+            <span className="text-xs font-medium">{video.upvoteCount || 0}</span>
+          </Button>
         </div>
         
         {/* AI Summary */}
