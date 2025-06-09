@@ -18,7 +18,7 @@ export async function generateAISummary(
     }
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-preview-05-20",
+      model: "gemini-2.0-flash-lite",
     });
 
     let prompt: string;
