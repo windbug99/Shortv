@@ -120,7 +120,7 @@ export default function Channel() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.isArray(channels) && channels.map((channel: any) => (
+          {(channels as any[])?.map((channel: any) => (
             <ChannelCard
               key={channel.id}
               channel={channel}
