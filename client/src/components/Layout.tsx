@@ -67,17 +67,17 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* User Profile */}
         <div className="absolute bottom-6 left-3">
+          {/*
           <div className="w-10 h-10 bg-gray-300 rounded-full overflow-hidden">
-            {user?.profileImageUrl ? (
+            {user?.profileImageUrl && (
               <img
                 src={user.profileImageUrl}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
-            ) : (
-              <div className="w-full h-full bg-gray-300" />
             )}
           </div>
+          */}
         </div>
       </div>
 
