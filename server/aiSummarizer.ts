@@ -4,7 +4,6 @@ import {
   preprocessTranscript,
   chunkTranscript,
 } from "./transcriptExtractor";
-import { generateImprovedSummary } from "./improvedSummarizer";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -41,27 +40,7 @@ export async function generateAISummary(
           transcript = preprocessTranscript(transcript);
           console.log(`Using regular transcript for ${videoId}: ${transcript.length} characters`);
         } else {
-          // Method 2: Improved video analysis with audio transcription and intelligent content analysis
-          console.log(`Regular transcript failed for ${videoId}, attempting improved analysis...`);
-          try {
-            const improvedResult = await generateImprovedSummary(videoId, title, description);
-            if (improvedResult.success) {
-              if (improvedResult.transcript) {
-                transcript = preprocessTranscript(improvedResult.transcript);
-                console.log(`Using ${improvedResult.method} transcript for ${videoId}: ${transcript.length} characters`);
-              }
-              
-              // Use enhanced summary for detailed summaries
-              if (improvedResult.enhancedSummary && type === "detailed") {
-                console.log(`Using ${improvedResult.method} enhanced summary for ${videoId}`);
-                return improvedResult.enhancedSummary;
-              }
-            } else {
-              console.log(`Improved analysis failed for ${videoId}: ${improvedResult.error || 'Unknown error'}`);
-            }
-          } catch (error) {
-            console.log(`Improved analysis error for ${videoId}:`, error);
-          }
+          console.log(`No transcript available for ${videoId}, proceeding with title and description only`);
         }
       }
 
