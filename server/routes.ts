@@ -104,6 +104,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Subscribe to channel endpoint
+  app.post('/api/channels/:id/subscribe', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const channelId = parseInt(req.params.id);
+
+      // Check if already subscribed
+      const isSubscribed = await storage.isUserSubscribed(userId, channelId);
+      if (isSubscribed) {
+        return res.status(400).json({ message: "Already subscribed to this channel" });
+      }
+
+      // Subscribe user to channel
+      await storage.subscribeToChannel({ userId, channelId });
+      res.json({ message: "Successfully subscribed to channel", subscribed: true });
+    } catch (error) {
+      console.error("Error subscribing to channel:", error);
+      res.status(500).json({ message: "Failed to subscribe to channel" });
+    }
+  });
+
+  // Check subscription status endpoint
+  app.get('/api/channels/:id/subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const channelId = parseInt(req.params.id);
+      const isSubscribed = await storage.isUserSubscribed(userId, channelId);
+      res.json({ subscribed: isSubscribed });
+    } catch (error) {
+      console.error("Error checking subscription status:", error);
+      res.status(500).json({ message: "Failed to check subscription status" });
+    }
+  });
+
   app.delete('/api/channels/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
