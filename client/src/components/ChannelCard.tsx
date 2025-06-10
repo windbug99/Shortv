@@ -63,7 +63,7 @@ export default function ChannelCard({ channel, onDelete, isDeleting }: ChannelCa
         </div>
         
         <h3 className="font-semibold text-gray-900 mb-1">{channel.name}</h3>
-        <p className="text-sm text-gray-500 mb-3 truncate">{channel.channelId}</p>
+        <p className="truncate text-[12px] mt-[4px] mb-[4px] font-normal text-[#a0a6b8]">{channel.channelId}</p>
         
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
