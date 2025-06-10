@@ -116,9 +116,8 @@ ${contentSource}
           content: prompt
         }
       ],
-      max_tokens: 1000,
-      temperature: 0.2,
-      response_format: { type: "text" }
+      max_tokens: 800,
+      temperature: 0.2
     });
 
     const summary = response.choices[0].message.content || "요약 생성 실패";
