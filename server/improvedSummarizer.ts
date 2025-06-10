@@ -40,10 +40,10 @@ async function testAudioAvailability(videoId: string): Promise<boolean> {
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       if (testProcess && !testProcess.killed) {
-        testProcess.kill('SIGTERM');
+        testProcess.kill('SIGKILL');
       }
       resolve(false);
-    }, 5000); // 5 second quick test
+    }, 3000); // 3 second quick test
 
     const testProcess = spawn('yt-dlp', [
       '--simulate',
@@ -52,9 +52,19 @@ async function testAudioAvailability(videoId: string): Promise<boolean> {
       `https://www.youtube.com/watch?v=${videoId}`
     ]);
 
+    let hasError = false;
+
+    testProcess.stderr.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes('403') || output.includes('Forbidden') || output.includes('ERROR')) {
+        hasError = true;
+        testProcess.kill('SIGKILL');
+      }
+    });
+
     testProcess.on('close', (code) => {
       clearTimeout(timeout);
-      resolve(code === 0);
+      resolve(code === 0 && !hasError);
     });
 
     testProcess.on('error', () => {
