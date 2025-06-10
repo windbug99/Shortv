@@ -107,7 +107,7 @@ export default function Home() {
       {/* Trending Section */}
       <div>
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">트랜딩</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">트랜딩 인사이트</h1>
           <p className="text-gray-600">최근 7일간 가장 인기있는 영상들을 확인하세요</p>
         </div>
         
