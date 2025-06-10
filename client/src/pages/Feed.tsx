@@ -241,8 +241,8 @@ export default function Feed() {
         </Button>
 
         {/* Video Header */}
-        <Card className="mb-8">
-          <div className="aspect-video bg-gray-300 rounded-t-xl overflow-hidden">
+        <Card className="mb-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div className="aspect-video bg-gray-300 dark:bg-gray-600 rounded-t-xl overflow-hidden">
             {video.thumbnailUrl ? (
               <img
                 src={video.thumbnailUrl}
@@ -250,8 +250,8 @@ export default function Feed() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                <span className="text-gray-500">썸네일 없음</span>
+              <div className="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                <span className="text-gray-500 dark:text-gray-400">썸네일 없음</span>
               </div>
             )}
           </div>
@@ -269,8 +269,8 @@ export default function Feed() {
                 )}
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-[#fafafa]">{video.channel.name}</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="font-medium text-[#101827] dark:text-gray-300">{video.channel.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {formatTimeAgo(video.publishedAt)} • 
                   {video.duration && ` ${formatDuration(video.duration)} • `}
                   조회수 {video.viewCount?.toLocaleString() || 0}회
@@ -305,31 +305,31 @@ export default function Feed() {
                 </Button>
               </div>
             </div>
-            <h1 className="text-2xl font-bold mb-4 text-[#fafafa]">{video.title}</h1>
-            <p className="text-gray-600 leading-relaxed">
+            <h1 className="text-2xl font-bold mb-4 text-[#101827] dark:text-gray-100">{video.title}</h1>
+            <p className="text-gray-600 dark:text-[#FAFAFA] leading-relaxed">
               {video.aiSummary || "AI 요약이 아직 생성되지 않았습니다."}
             </p>
           </CardContent>
         </Card>
 
         {/* Detailed Summary */}
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardContent className="p-8">
-            <div className="prose prose-lg prose-gray max-w-none prose-headings:text-gray-900 prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-strong:text-gray-900 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:p-4 prose-blockquote:rounded-lg">
+            <div className="prose prose-lg prose-gray max-w-none prose-headings:text-gray-900 dark:prose-headings:text-[#FAFAFA] prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-strong:text-gray-900 dark:prose-strong:text-[#FAFAFA] prose-p:text-gray-700 dark:prose-p:text-[#FAFAFA] prose-li:text-gray-700 dark:prose-li:text-[#FAFAFA] prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 dark:prose-blockquote:bg-blue-900/20 prose-blockquote:p-4 prose-blockquote:rounded-lg">
               {video.detailedSummary ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {video.detailedSummary}
                 </ReactMarkdown>
               ) : (
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">핵심정리</h2>
-                  <p className="text-gray-500">상세한 AI 요약이 아직 생성되지 않았습니다.</p>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-[#FAFAFA] mb-6">핵심정리</h2>
+                  <p className="text-gray-500 dark:text-[#FAFAFA]">상세한 AI 요약이 아직 생성되지 않았습니다.</p>
                 </div>
               )}
             </div>
             
             {/* Action Buttons */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-4">
                 <Button
                   variant="ghost"
