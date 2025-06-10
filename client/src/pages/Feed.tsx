@@ -338,6 +338,20 @@ export default function Feed() {
                 뒤로가기
               </Button>
               <Button
+                variant="ghost"
+                onClick={handleShare}
+              >
+                <Share className="w-4 h-4 mr-2" />
+                공유
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleOpenOriginal}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                YouTube에서 보기
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={handleSubscribe}
@@ -362,20 +376,6 @@ export default function Feed() {
                   className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
                 />
                 <span className="text-sm font-medium">{video.upvoteCount || 0}</span>
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleShare}
-              >
-                <Share className="w-4 h-4 mr-2" />
-                공유
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleOpenOriginal}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                YouTube에서 보기
               </Button>
             </div>
           </CardContent>
