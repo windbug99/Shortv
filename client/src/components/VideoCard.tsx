@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface VideoCardProps {
   video: {
@@ -29,6 +30,7 @@ interface VideoCardProps {
 export default function VideoCard({ video }: VideoCardProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   const upvoteMutation = useMutation({
     mutationFn: async () => {
@@ -77,6 +79,20 @@ export default function VideoCard({ video }: VideoCardProps) {
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Check if user is authenticated before allowing upvote
+    if (!isAuthenticated) {
+      toast({
+        title: "로그인 필요",
+        description: "업보트를 하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+    
     upvoteMutation.mutate();
   };
 

@@ -56,6 +56,7 @@ export interface IStorage {
 
   // Feed operations
   getUserFeed(userId: string): Promise<Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>>;
+  getRecommendedVideos(userId?: string): Promise<Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -344,6 +345,55 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(userChannelSubscriptions, eq(channels.id, userChannelSubscriptions.channelId))
       .where(eq(userChannelSubscriptions.userId, userId))
       .orderBy(desc(videos.publishedAt));
+
+    return result as Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>;
+  }
+
+  async getRecommendedVideos(userId?: string): Promise<Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>> {
+    const result = await db
+      .select({
+        id: videos.id,
+        videoId: videos.videoId,
+        channelId: videos.channelId,
+        title: videos.title,
+        description: videos.description,
+        thumbnailUrl: videos.thumbnailUrl,
+        publishedAt: videos.publishedAt,
+        duration: videos.duration,
+        viewCount: videos.viewCount,
+        aiSummary: videos.aiSummary,
+        detailedSummary: videos.detailedSummary,
+        createdAt: videos.createdAt,
+        channel: {
+          id: channels.id,
+          channelId: channels.channelId,
+          name: channels.name,
+          description: channels.description,
+          thumbnailUrl: channels.thumbnailUrl,
+          subscriberCount: channels.subscriberCount,
+          videoCount: channels.videoCount,
+          totalViews: channels.totalViews,
+          lastUpdate: channels.lastUpdate,
+          createdAt: channels.createdAt,
+          addedBy: channels.addedBy,
+        },
+        upvoteCount: sql<number>`
+          (SELECT COUNT(*) FROM ${videoUpvotes} WHERE ${videoUpvotes.videoId} = ${videos.id})
+        `,
+        userUpvoted: sql<boolean>`
+          ${userId ? sql`EXISTS(
+            SELECT 1 FROM ${videoUpvotes} 
+            WHERE ${videoUpvotes.videoId} = ${videos.id} 
+            AND ${videoUpvotes.userId} = ${userId}
+          )` : sql`FALSE`}
+        `,
+      })
+      .from(videos)
+      .innerJoin(channels, eq(videos.channelId, channels.id))
+      .where(sql`(SELECT COUNT(*) FROM ${videoUpvotes} WHERE ${videoUpvotes.videoId} = ${videos.id}) >= 1`)
+      .orderBy(sql`
+        (SELECT MAX(${videoUpvotes.createdAt}) FROM ${videoUpvotes} WHERE ${videoUpvotes.videoId} = ${videos.id}) DESC
+      `);
 
     return result as Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>;
   }

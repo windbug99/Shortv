@@ -140,6 +140,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/videos/recommended', async (req: any, res) => {
+    try {
+      const userId = req.user ? req.user.claims.sub : undefined;
+      const recommended = await storage.getRecommendedVideos(userId);
+      res.json(recommended);
+    } catch (error) {
+      console.error("Error fetching recommended videos:", error);
+      res.status(500).json({ message: "Failed to fetch recommended videos" });
+    }
+  });
+
   app.get('/api/videos/:id', async (req, res) => {
     try {
       const videoId = parseInt(req.params.id);
