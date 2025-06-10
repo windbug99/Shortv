@@ -113,12 +113,12 @@ export default function Home() {
             })}
           </div>
 
-          {/* Left slide button positioned over the cards */}
+          {/* Left slide button positioned at far left edge */}
           {showSlideButtons && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
               onClick={() => handleTrendingSlide('left')}
               disabled={!canSlideLeft}
             >
@@ -126,12 +126,12 @@ export default function Home() {
             </Button>
           )}
 
-          {/* Right slide button positioned over the cards */}
+          {/* Right slide button positioned at far right edge */}
           {showSlideButtons && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
               onClick={() => handleTrendingSlide('right')}
               disabled={!canSlideRight}
             >
