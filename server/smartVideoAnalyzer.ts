@@ -200,12 +200,6 @@ ${transcript.substring(0, 4000)}
 
 async function performEnhancedAnalysis(title: string, description: string): Promise<SmartAnalysisResult> {
   try {
-    const model = new LangChainOpenAI({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      modelName: "gpt-4o-mini",
-      temperature: 0.3
-    });
-
     const analysisPrompt = `
 YouTube 영상의 제목과 설명을 심층 분석하여 실용적이고 구체적인 내용 예측 및 요약을 생성해 주세요.
 
@@ -224,11 +218,17 @@ YouTube 영상의 제목과 설명을 심층 분석하여 실용적이고 구체
 한국어로 자연스럽게 정리해 주세요.
 `;
 
-    const enhancedAnalysis = await model.call(analysisPrompt);
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [{ role: "user", content: analysisPrompt }],
+      temperature: 0.3
+    });
+
+    const enhancedAnalysis = response.choices[0].message.content;
 
     return {
       success: true,
-      enhancedSummary: enhancedAnalysis,
+      enhancedSummary: enhancedAnalysis || undefined,
       method: 'enhanced_analysis'
     };
 

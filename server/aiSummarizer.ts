@@ -4,7 +4,7 @@ import {
   preprocessTranscript,
   chunkTranscript,
 } from "./transcriptExtractor";
-import { smartVideoAnalysis } from "./smartVideoAnalyzer";
+import { generateImprovedSummary } from "./improvedSummarizer";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -41,32 +41,26 @@ export async function generateAISummary(
           transcript = preprocessTranscript(transcript);
           console.log(`Using regular transcript for ${videoId}: ${transcript.length} characters`);
         } else {
-          // Method 2: Smart video analysis with audio transcription fallback
-          console.log(`Regular transcript failed for ${videoId}, attempting smart video analysis...`);
+          // Method 2: Improved video analysis with audio transcription and intelligent content analysis
+          console.log(`Regular transcript failed for ${videoId}, attempting improved analysis...`);
           try {
-            const smartResult = await smartVideoAnalysis(videoId, title, description);
-            if (smartResult.success) {
-              if (smartResult.transcript) {
-                transcript = preprocessTranscript(smartResult.transcript);
-                console.log(`Using ${smartResult.method} transcript for ${videoId}: ${transcript.length} characters`);
+            const improvedResult = await generateImprovedSummary(videoId, title, description);
+            if (improvedResult.success) {
+              if (improvedResult.transcript) {
+                transcript = preprocessTranscript(improvedResult.transcript);
+                console.log(`Using ${improvedResult.method} transcript for ${videoId}: ${transcript.length} characters`);
               }
               
               // Use enhanced summary for detailed summaries
-              if (smartResult.enhancedSummary && type === "detailed") {
-                console.log(`Using ${smartResult.method} enhanced summary for ${videoId}`);
-                return smartResult.enhancedSummary;
-              }
-              
-              // For introduction summaries with enhanced content, modify the prompt
-              if (smartResult.enhancedSummary && type === "introduction") {
-                console.log(`Using enhanced content analysis for ${videoId} introduction`);
-                // Continue to use enhanced content in the prompt below
+              if (improvedResult.enhancedSummary && type === "detailed") {
+                console.log(`Using ${improvedResult.method} enhanced summary for ${videoId}`);
+                return improvedResult.enhancedSummary;
               }
             } else {
-              console.log(`Smart analysis failed for ${videoId}: ${smartResult.error || 'Unknown error'}`);
+              console.log(`Improved analysis failed for ${videoId}: ${improvedResult.error || 'Unknown error'}`);
             }
           } catch (error) {
-            console.log(`Smart analysis error for ${videoId}:`, error);
+            console.log(`Improved analysis error for ${videoId}:`, error);
           }
         }
       }
