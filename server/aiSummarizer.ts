@@ -41,28 +41,32 @@ export async function generateAISummary(
           transcript = preprocessTranscript(transcript);
           console.log(`Using regular transcript for ${videoId}: ${transcript.length} characters`);
         } else {
-          // Method 2: Practical enhanced transcription with LangChain
-          console.log(`Regular transcript failed for ${videoId}, attempting practical enhanced transcription...`);
+          // Method 2: Smart video analysis with audio transcription fallback
+          console.log(`Regular transcript failed for ${videoId}, attempting smart video analysis...`);
           try {
-            const practicalResult = await practicalVideoTranscription(videoId, title, description);
-            if (practicalResult.success) {
-              if (practicalResult.transcript) {
-                transcript = preprocessTranscript(practicalResult.transcript);
-                console.log(`Using ${practicalResult.method} transcript for ${videoId}: ${transcript.length} characters`);
+            const smartResult = await smartVideoAnalysis(videoId, title, description);
+            if (smartResult.success) {
+              if (smartResult.transcript) {
+                transcript = preprocessTranscript(smartResult.transcript);
+                console.log(`Using ${smartResult.method} transcript for ${videoId}: ${transcript.length} characters`);
               }
               
-              // If enhanced analysis generated a summary, use it directly
-              if (practicalResult.summary && type === "detailed") {
-                console.log(`Using ${practicalResult.method} summary for ${videoId}`);
-                return practicalResult.summary;
+              // Use enhanced summary for detailed summaries
+              if (smartResult.enhancedSummary && type === "detailed") {
+                console.log(`Using ${smartResult.method} enhanced summary for ${videoId}`);
+                return smartResult.enhancedSummary;
+              }
+              
+              // For introduction summaries with enhanced content, modify the prompt
+              if (smartResult.enhancedSummary && type === "introduction") {
+                console.log(`Using enhanced content analysis for ${videoId} introduction`);
+                // Continue to use enhanced content in the prompt below
               }
             } else {
-              console.log(`Practical transcription failed for ${videoId}: ${practicalResult.error || 'Unknown error'}`);
-              console.log(`Proceeding with title and description analysis for ${videoId}`);
+              console.log(`Smart analysis failed for ${videoId}: ${smartResult.error || 'Unknown error'}`);
             }
           } catch (error) {
-            console.log(`Practical transcription error for ${videoId}:`, error);
-            console.log(`Proceeding with title and description analysis for ${videoId}`);
+            console.log(`Smart analysis error for ${videoId}:`, error);
           }
         }
       }

@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import OpenAI from 'openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { OpenAI as LangChainOpenAI } from '@langchain/openai';
+import { ChatOpenAI } from '@langchain/openai';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -163,18 +163,9 @@ async function transcribeWithWhisper(audioPath: string): Promise<string | null> 
 
 async function createTranscriptSummary(transcript: string, title: string): Promise<string> {
   try {
-    const model = new LangChainOpenAI({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      modelName: "gpt-4o-mini",
-      temperature: 0.2
-    });
-
-    let summaryPrompt: string;
-
-    if (transcript.length < 3000) {
-      // Direct summarization for shorter content
-      summaryPrompt = `
-다음은 YouTube 영상 "${title}"의 실제 음성 전사 내용입니다.
+    // Use OpenAI directly for simpler implementation
+    const summaryPrompt = transcript.length < 3000 
+      ? `다음은 YouTube 영상 "${title}"의 실제 음성 전사 내용입니다.
 
 전사 내용:
 ${transcript}
@@ -186,36 +177,20 @@ ${transcript}
 4. 한국어로 자연스럽고 읽기 쉽게 작성
 5. 불필요한 반복이나 추측 제거
 
-실제 내용을 반영한 상세하고 정확한 요약을 작성해 주세요.
-`;
-    } else {
-      // Chunked analysis for longer content
-      const textSplitter = new RecursiveCharacterTextSplitter({
-        chunkSize: 2500,
-        chunkOverlap: 150
-      });
+실제 내용을 반영한 상세하고 정확한 요약을 작성해 주세요.`
+      : `다음은 YouTube 영상 "${title}"의 음성 전사 내용 일부입니다:
 
-      const chunks = await textSplitter.splitText(transcript);
-      const chunkSummaries: string[] = [];
+${transcript.substring(0, 4000)}
 
-      for (const chunk of chunks.slice(0, 5)) { // Limit to 5 chunks
-        const chunkPrompt = `다음 영상 전사 부분의 핵심 내용을 요약해 주세요:\n\n${chunk}`;
-        const chunkSummary = await model.call(chunkPrompt);
-        chunkSummaries.push(chunkSummary);
-      }
+실제 발화 내용을 바탕으로 핵심 포인트와 주요 정보를 추출하여 한국어로 상세하고 정확한 요약을 작성해 주세요.`;
 
-      summaryPrompt = `
-다음은 YouTube 영상 "${title}"의 각 부분별 요약입니다:
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [{ role: "user", content: summaryPrompt }],
+      temperature: 0.2
+    });
 
-${chunkSummaries.map((summary, i) => `${i + 1}. ${summary}`).join('\n\n')}
-
-이 부분별 요약들을 통합하여 영상 전체의 포괄적이고 일관된 최종 요약을 작성해 주세요.
-실제 내용을 정확히 반영하되, 중복을 제거하고 논리적 흐름을 갖추어 주세요.
-`;
-    }
-
-    const finalSummary = await model.call(summaryPrompt);
-    return finalSummary;
+    return response.choices[0].message.content || `실제 음성 내용 기반 요약: ${transcript.substring(0, 500)}...`;
 
   } catch (error) {
     console.error('Transcript summary creation failed:', error);
