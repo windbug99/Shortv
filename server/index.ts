@@ -56,8 +56,22 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use PORT environment variable or find an available port
+  // Use PORT environment variable or default to 5000
   const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+  
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use. Trying next available port...`);
+      server.listen(0, "0.0.0.0", () => {
+        const actualPort = (server.address() as any)?.port;
+        log(`serving on port ${actualPort}`);
+      });
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+  
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
