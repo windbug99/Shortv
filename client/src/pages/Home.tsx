@@ -113,29 +113,29 @@ export default function Home() {
             })}
           </div>
 
-          {/* Left slide button positioned at far left edge */}
-          {showSlideButtons && (
+          {/* Left slide button - hidden when disabled */}
+          {showSlideButtons && canSlideLeft && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
+              className="absolute left-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0"
+              style={{ backgroundColor: '#0F0504' }}
               onClick={() => handleTrendingSlide('left')}
-              disabled={!canSlideLeft}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 text-white" />
             </Button>
           )}
 
-          {/* Right slide button positioned at far right edge */}
-          {showSlideButtons && (
+          {/* Right slide button - hidden when disabled */}
+          {showSlideButtons && canSlideRight && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
+              className="absolute right-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0"
+              style={{ backgroundColor: '#0F0504' }}
               onClick={() => handleTrendingSlide('right')}
-              disabled={!canSlideRight}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 text-white" />
             </Button>
           )}
         </div>
