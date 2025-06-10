@@ -118,8 +118,7 @@ export default function Home() {
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0"
-              style={{ backgroundColor: '#0F0504' }}
+              className="absolute left-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0 bg-[#0f0504d9]"
               onClick={() => handleTrendingSlide('left')}
             >
               <ChevronLeft className="h-4 w-4 text-white" />
@@ -131,8 +130,7 @@ export default function Home() {
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0"
-              style={{ backgroundColor: '#0F0504' }}
+              className="absolute right-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0 bg-[#0f0504d9]"
               onClick={() => handleTrendingSlide('right')}
             >
               <ChevronRight className="h-4 w-4 text-white" />
