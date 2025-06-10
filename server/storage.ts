@@ -57,6 +57,7 @@ export interface IStorage {
   // Feed operations
   getUserFeed(userId: string): Promise<Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>>;
   getRecommendedVideos(userId?: string): Promise<Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>>;
+  getTrendingVideos(userId?: string): Promise<Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -394,6 +395,61 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`
         (SELECT MAX(${videoUpvotes.createdAt}) FROM ${videoUpvotes} WHERE ${videoUpvotes.videoId} = ${videos.id}) DESC
       `);
+
+    return result as Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>;
+  }
+
+  async getTrendingVideos(userId?: string): Promise<Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>> {
+    // Get videos from the last 7 days, ordered by upvote count (desc), then view count (desc)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const result = await db
+      .select({
+        id: videos.id,
+        videoId: videos.videoId,
+        channelId: videos.channelId,
+        title: videos.title,
+        description: videos.description,
+        thumbnailUrl: videos.thumbnailUrl,
+        publishedAt: videos.publishedAt,
+        duration: videos.duration,
+        viewCount: videos.viewCount,
+        aiSummary: videos.aiSummary,
+        detailedSummary: videos.detailedSummary,
+        createdAt: videos.createdAt,
+        channel: {
+          id: channels.id,
+          channelId: channels.channelId,
+          name: channels.name,
+          description: channels.description,
+          thumbnailUrl: channels.thumbnailUrl,
+          subscriberCount: channels.subscriberCount,
+          videoCount: channels.videoCount,
+          totalViews: channels.totalViews,
+          lastUpdate: channels.lastUpdate,
+          createdAt: channels.createdAt,
+          addedBy: channels.addedBy,
+        },
+        upvoteCount: sql<number>`
+          (SELECT COUNT(*) FROM ${videoUpvotes} WHERE ${videoUpvotes.videoId} = ${videos.id})
+        `,
+        userUpvoted: sql<boolean>`
+          ${userId ? sql`EXISTS(
+            SELECT 1 FROM ${videoUpvotes} 
+            WHERE ${videoUpvotes.videoId} = ${videos.id} 
+            AND ${videoUpvotes.userId} = ${userId}
+          )` : sql`FALSE`}
+        `,
+      })
+      .from(videos)
+      .innerJoin(channels, eq(videos.channelId, channels.id))
+      .where(gte(videos.publishedAt, sevenDaysAgo))
+      .orderBy(
+        sql`(SELECT COUNT(*) FROM ${videoUpvotes} WHERE ${videoUpvotes.videoId} = ${videos.id}) DESC`,
+        desc(videos.viewCount)
+      )
+      .limit(8);
 
     return result as Array<Video & { channel: Channel; upvoteCount: number; userUpvoted: boolean }>;
   }

@@ -185,6 +185,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/videos/trending', async (req: any, res) => {
+    try {
+      const userId = req.user ? req.user.claims.sub : undefined;
+      const trending = await storage.getTrendingVideos(userId);
+      res.json(trending);
+    } catch (error) {
+      console.error("Error fetching trending videos:", error);
+      res.status(500).json({ message: "Failed to fetch trending videos" });
+    }
+  });
+
   app.get('/api/videos/:id', async (req, res) => {
     try {
       const videoId = parseInt(req.params.id);
