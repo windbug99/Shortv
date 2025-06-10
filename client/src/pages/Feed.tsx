@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Share, ExternalLink } from "lucide-react";
+import { ArrowLeft, Share, ExternalLink, Plus } from "lucide-react";
 import { CircleArrowUp } from "@/components/ui/circle-arrow-up";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -51,6 +51,49 @@ export default function Feed() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos/feed"] });
+    },
+  });
+
+  // Check subscription status
+  const { data: subscriptionData } = useQuery({
+    queryKey: ["/api/channels", video?.channel.id, "subscription"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/channels/${video?.channel.id}/subscription`);
+      return await response.json();
+    },
+    enabled: isAuthenticated && !!video?.channel.id,
+  });
+
+  const subscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/channels/${video?.channel.id}/subscribe`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/channels", video?.channel.id, "subscription"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/channels"] });
+      toast({
+        title: "구독 완료",
+        description: `${video?.channel.name} 채널을 구독했습니다.`,
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "인증 오류",
+          description: "다시 로그인해주세요.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "오류",
+        description: "채널 구독 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -102,6 +145,23 @@ export default function Feed() {
     }
     
     upvoteMutation.mutate();
+  };
+
+  const handleSubscribe = () => {
+    // Check if user is authenticated before allowing subscription
+    if (!isAuthenticated) {
+      toast({
+        title: "로그인 필요",
+        description: "채널을 구독하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+    
+    subscriptionMutation.mutate();
   };
 
   const handleGoBack = useCallback(() => {
