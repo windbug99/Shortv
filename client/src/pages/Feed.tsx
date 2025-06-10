@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Share, ExternalLink } from "lucide-react";
@@ -104,6 +104,14 @@ export default function Feed() {
     upvoteMutation.mutate();
   };
 
+  const handleGoBack = useCallback(() => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation("/");
+    }
+  }, [setLocation]);
+
   // Increment view count when page loads
   useEffect(() => {
     if (videoId && video) {
@@ -148,11 +156,11 @@ export default function Feed() {
       <div className="p-6">
         <Button
           variant="ghost"
-          onClick={() => setLocation("/")}
+          onClick={handleGoBack}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          홈으로 돌아가기
+          뒤로가기
         </Button>
         <p className="text-gray-500">영상을 찾을 수 없습니다.</p>
       </div>
@@ -165,11 +173,11 @@ export default function Feed() {
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => setLocation("/")}
+          onClick={handleGoBack}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          홈으로 돌아가기
+          뒤로가기
         </Button>
 
         {/* Video Header */}
@@ -254,10 +262,10 @@ export default function Feed() {
             <div className="flex items-center space-x-4 mt-8 pt-6 border-t border-gray-200">
               <Button
                 variant="ghost"
-                onClick={() => setLocation("/")}
+                onClick={handleGoBack}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                뒤로
+                뒤로가기
               </Button>
               <Button
                 variant="ghost"
