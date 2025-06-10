@@ -37,7 +37,7 @@ export async function transcribeVideoAudio(videoId: string): Promise<AudioTransc
     console.log('Extracting audio from video...');
     const audioExtracted = await Promise.race([
       extractAudio(videoId, audioPath),
-      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 180000)) // 3 minute timeout
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 60000)) // 1 minute timeout for faster fallback
     ]);
     
     if (!audioExtracted) {
@@ -114,29 +114,83 @@ export async function transcribeVideoAudio(videoId: string): Promise<AudioTransc
 }
 
 async function extractAudio(videoId: string, outputPath: string): Promise<boolean> {
+  // Try multiple extraction strategies
+  const strategies = [
+    // Strategy 1: Basic extraction with user agent
+    {
+      name: 'basic',
+      args: [
+        '--extract-audio',
+        '--audio-format', 'wav',
+        '--audio-quality', '5',
+        '--max-filesize', '50M',
+        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        '--output', outputPath.replace('.wav', '.%(ext)s'),
+        `https://www.youtube.com/watch?v=${videoId}`
+      ]
+    },
+    // Strategy 2: With format selection
+    {
+      name: 'format-select',
+      args: [
+        '--extract-audio',
+        '--audio-format', 'wav',
+        '--audio-quality', '5',
+        '--format', 'worst[ext=mp4]/worst',
+        '--max-filesize', '50M',
+        '--output', outputPath.replace('.wav', '.%(ext)s'),
+        `https://www.youtube.com/watch?v=${videoId}`
+      ]
+    },
+    // Strategy 3: Minimal options
+    {
+      name: 'minimal',
+      args: [
+        '--extract-audio',
+        '--audio-format', 'wav',
+        '--output', outputPath.replace('.wav', '.%(ext)s'),
+        `https://www.youtube.com/watch?v=${videoId}`
+      ]
+    }
+  ];
+
+  for (const strategy of strategies) {
+    console.log(`Trying audio extraction strategy: ${strategy.name}`);
+    const success = await tryExtractAudio(strategy.args, outputPath);
+    if (success) {
+      console.log(`Audio extraction successful with strategy: ${strategy.name}`);
+      return true;
+    }
+    console.log(`Strategy ${strategy.name} failed, trying next...`);
+  }
+
+  console.log('All audio extraction strategies failed');
+  return false;
+}
+
+async function tryExtractAudio(args: string[], outputPath: string): Promise<boolean> {
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      console.log('Audio extraction timeout, killing process...');
+      console.log('Audio extraction timeout for current strategy');
       ytDlp.kill('SIGTERM');
       resolve(false);
-    }, 300000); // 5 minute timeout
+    }, 120000); // 2 minute timeout per strategy
 
-    const ytDlp = spawn('yt-dlp', [
-      '--extract-audio',
-      '--audio-format', 'wav',
-      '--audio-quality', '5', // Lower quality for faster processing
-      '--max-filesize', '100M', // Limit file size
-      '--output', outputPath.replace('.wav', '.%(ext)s'),
-      `https://www.youtube.com/watch?v=${videoId}`
-    ]);
-
+    const ytDlp = spawn('yt-dlp', args);
     let hasError = false;
 
     ytDlp.stderr.on('data', (data) => {
       const output = data.toString();
-      if (output.includes('ERROR') || output.includes('Failed')) {
-        console.error('yt-dlp error:', output);
+      if (output.includes('ERROR') || output.includes('403') || output.includes('Forbidden')) {
+        console.log('Audio extraction error:', output.trim());
         hasError = true;
+      }
+    });
+
+    ytDlp.stdout.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes('Deleting original file')) {
+        console.log('Audio extraction in progress...');
       }
     });
 
@@ -145,14 +199,13 @@ async function extractAudio(videoId: string, outputPath: string): Promise<boolea
       if (code === 0 && !hasError && fs.existsSync(outputPath)) {
         resolve(true);
       } else {
-        console.error(`yt-dlp exited with code ${code}`);
         resolve(false);
       }
     });
 
     ytDlp.on('error', (error) => {
       clearTimeout(timeout);
-      console.error('yt-dlp spawn error:', error);
+      console.log('yt-dlp spawn error:', error);
       resolve(false);
     });
   });

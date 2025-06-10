@@ -43,12 +43,18 @@ export async function generateAISummary(
         } else {
           // Method 2: Fallback to audio transcription using Whisper
           console.log(`Regular transcript failed for ${videoId}, attempting audio transcription...`);
-          const audioResult = await transcribeVideoAudio(videoId);
-          if (audioResult.success && audioResult.transcript) {
-            transcript = preprocessTranscript(audioResult.transcript);
-            console.log(`Using audio transcript for ${videoId}: ${transcript.length} characters`);
-          } else {
-            console.log(`Audio transcription also failed for ${videoId}: ${audioResult.error || 'Unknown error'}`);
+          try {
+            const audioResult = await transcribeVideoAudio(videoId);
+            if (audioResult.success && audioResult.transcript) {
+              transcript = preprocessTranscript(audioResult.transcript);
+              console.log(`Using audio transcript for ${videoId}: ${transcript.length} characters`);
+            } else {
+              console.log(`Audio transcription failed for ${videoId}: ${audioResult.error || 'Unknown error'}`);
+              console.log(`Proceeding with title and description only for ${videoId}`);
+            }
+          } catch (error) {
+            console.log(`Audio transcription error for ${videoId}:`, error);
+            console.log(`Proceeding with title and description only for ${videoId}`);
           }
         }
       }
