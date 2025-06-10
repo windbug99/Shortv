@@ -114,57 +114,37 @@ export async function transcribeVideoAudio(videoId: string): Promise<AudioTransc
 }
 
 async function extractAudio(videoId: string, outputPath: string): Promise<boolean> {
-  // Try multiple extraction strategies
-  const strategies = [
-    // Strategy 1: Basic extraction with user agent
-    {
-      name: 'basic',
-      args: [
-        '--extract-audio',
-        '--audio-format', 'wav',
-        '--audio-quality', '5',
-        '--max-filesize', '50M',
-        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        '--output', outputPath.replace('.wav', '.%(ext)s'),
-        `https://www.youtube.com/watch?v=${videoId}`
-      ]
-    },
-    // Strategy 2: With format selection
-    {
-      name: 'format-select',
-      args: [
-        '--extract-audio',
-        '--audio-format', 'wav',
-        '--audio-quality', '5',
-        '--format', 'worst[ext=mp4]/worst',
-        '--max-filesize', '50M',
-        '--output', outputPath.replace('.wav', '.%(ext)s'),
-        `https://www.youtube.com/watch?v=${videoId}`
-      ]
-    },
-    // Strategy 3: Minimal options
-    {
-      name: 'minimal',
-      args: [
-        '--extract-audio',
-        '--audio-format', 'wav',
-        '--output', outputPath.replace('.wav', '.%(ext)s'),
-        `https://www.youtube.com/watch?v=${videoId}`
-      ]
-    }
-  ];
-
-  for (const strategy of strategies) {
-    console.log(`Trying audio extraction strategy: ${strategy.name}`);
-    const success = await tryExtractAudio(strategy.args, outputPath);
-    if (success) {
-      console.log(`Audio extraction successful with strategy: ${strategy.name}`);
-      return true;
-    }
-    console.log(`Strategy ${strategy.name} failed, trying next...`);
+  console.log(`Attempting audio extraction for video: ${videoId}`);
+  
+  // Quick test first to detect 403 errors immediately
+  const quickTest = await tryExtractAudio([
+    '--simulate',
+    '--get-url',
+    `https://www.youtube.com/watch?v=${videoId}`
+  ], outputPath);
+  
+  if (!quickTest) {
+    console.log('Video appears to have download restrictions, skipping audio extraction');
+    return false;
   }
 
-  console.log('All audio extraction strategies failed');
+  // If quick test passes, try actual extraction with single optimized strategy
+  const args = [
+    '--extract-audio',
+    '--audio-format', 'wav',
+    '--audio-quality', '5',
+    '--max-filesize', '50M',
+    '--output', outputPath.replace('.wav', '.%(ext)s'),
+    `https://www.youtube.com/watch?v=${videoId}`
+  ];
+
+  const success = await tryExtractAudio(args, outputPath);
+  if (success) {
+    console.log('Audio extraction successful');
+    return true;
+  }
+
+  console.log('Audio extraction failed');
   return false;
 }
 
@@ -172,31 +152,32 @@ async function tryExtractAudio(args: string[], outputPath: string): Promise<bool
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       console.log('Audio extraction timeout for current strategy');
-      ytDlp.kill('SIGTERM');
+      ytDlp.kill('SIGKILL');
       resolve(false);
-    }, 120000); // 2 minute timeout per strategy
+    }, 30000); // 30 second timeout per strategy for faster fallback
 
     const ytDlp = spawn('yt-dlp', args);
     let hasError = false;
+    let hasForbidden = false;
 
     ytDlp.stderr.on('data', (data) => {
       const output = data.toString();
-      if (output.includes('ERROR') || output.includes('403') || output.includes('Forbidden')) {
+      if (output.includes('403') || output.includes('Forbidden')) {
+        hasForbidden = true;
+        hasError = true;
+        ytDlp.kill('SIGKILL'); // Kill immediately on 403 errors
+      } else if (output.includes('ERROR')) {
         console.log('Audio extraction error:', output.trim());
         hasError = true;
       }
     });
 
-    ytDlp.stdout.on('data', (data) => {
-      const output = data.toString();
-      if (output.includes('Deleting original file')) {
-        console.log('Audio extraction in progress...');
-      }
-    });
-
     ytDlp.on('close', (code) => {
       clearTimeout(timeout);
-      if (code === 0 && !hasError && fs.existsSync(outputPath)) {
+      if (hasForbidden) {
+        console.log('Video has download restrictions (403 Forbidden)');
+        resolve(false);
+      } else if (code === 0 && !hasError && fs.existsSync(outputPath)) {
         resolve(true);
       } else {
         resolve(false);
@@ -205,7 +186,6 @@ async function tryExtractAudio(args: string[], outputPath: string): Promise<bool
 
     ytDlp.on('error', (error) => {
       clearTimeout(timeout);
-      console.log('yt-dlp spawn error:', error);
       resolve(false);
     });
   });
