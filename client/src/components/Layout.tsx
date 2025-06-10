@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { Play, Home, Tv, User, Rss } from "lucide-react";
+import { Play, Home, TvMinimalPlay, User, Rss } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -18,7 +18,7 @@ export default function Layout({ children }: LayoutProps) {
     {
       name: "채널",
       href: "/channel",
-      icon: Tv,
+      icon: TvMinimalPlay,
       current: location === "/channel",
     },
   ];
