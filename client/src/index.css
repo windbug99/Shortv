@@ -72,6 +72,14 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Custom heading and strong text colors for dark mode */
+  .dark h1,
+  .dark h2, 
+  .dark h3,
+  .dark strong {
+    color: #FAFAFA;
+  }
 }
 
 /* Custom styles for the YouTube feed app */
