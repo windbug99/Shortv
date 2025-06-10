@@ -112,11 +112,11 @@ export default function VideoCard({ video }: VideoCardProps) {
 
   return (
     <Card 
-      className="video-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-full flex flex-col"
+      className="video-card overflow-hidden hover:shadow-md dark:hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
       onClick={handleCardClick}
     >
       {/* Thumbnail */}
-      <div className="aspect-video bg-gray-300 overflow-hidden">
+      <div className="aspect-video bg-gray-300 dark:bg-gray-600 overflow-hidden">
         {video.thumbnailUrl ? (
           <img
             src={video.thumbnailUrl}
@@ -124,8 +124,8 @@ export default function VideoCard({ video }: VideoCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-            <span className="text-gray-500 text-sm">썸네일 없음</span>
+          <div className="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+            <span className="text-gray-500 dark:text-gray-400 text-sm">썸네일 없음</span>
           </div>
         )}
       </div>
@@ -133,7 +133,7 @@ export default function VideoCard({ video }: VideoCardProps) {
         <div className="flex-1 space-y-3">
           {/* Channel Info */}
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gray-300 rounded-full flex-shrink-0 overflow-hidden">
+            <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 overflow-hidden">
               {video.channel.thumbnailUrl ? (
                 <img
                   src={video.channel.thumbnailUrl}
@@ -141,36 +141,36 @@ export default function VideoCard({ video }: VideoCardProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gray-300" />
+                <div className="w-full h-full bg-gray-300 dark:bg-gray-600" />
               )}
             </div>
-            <span className="text-sm text-gray-600 font-medium">{video.channel.name}</span>
-            <span className="text-sm text-gray-400">{formatTimeAgo(video.publishedAt)}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">{video.channel.name}</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500">{formatTimeAgo(video.publishedAt)}</span>
           </div>
           
           {/* Title */}
-          <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-tight">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 text-sm leading-tight">
             {video.title}
           </h3>
           
           {/* AI Summary */}
-          <p className="text-sm text-gray-600 leading-relaxed flex-1">
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed flex-1">
             {video.aiSummary || "AI 요약이 생성 중입니다..."}
           </p>
         </div>
         
         {/* Metadata - Fixed at bottom */}
-        <div className="flex items-center justify-between text-sm text-gray-500 mt-3 pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
           <span>조회수 {video.viewCount?.toLocaleString() || 0}회</span>
           <Button
             variant="outline"
             size="sm"
             onClick={handleUpvote}
             disabled={upvoteMutation.isPending}
-            className="justify-center gap-2 whitespace-nowrap font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground !h-[1.8rem] flex items-center space-x-1 px-2 py-0.5 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50 text-[14px]"
+            className="justify-center gap-2 whitespace-nowrap font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:text-accent-foreground !h-[1.8rem] flex items-center space-x-1 px-2 py-0.5 border rounded-md transition-colors border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-[14px]"
           >
             <CircleArrowUp 
-              className={`w-3 h-3 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
+              className={`w-3 h-3 ${video.userUpvoted ? "text-red-500" : "text-gray-500 dark:text-gray-400"}`}
             />
             <span className="text-xs font-medium">{video.upvoteCount || 0}</span>
           </Button>

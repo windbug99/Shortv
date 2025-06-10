@@ -38,9 +38,9 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
-      <div className="w-16 bg-white border-r border-gray-200 fixed h-full z-10 flex flex-col">
+      <div className="w-16 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed h-full z-10 flex flex-col">
         <div className="p-3">
           {/* Logo */}
           <div className="flex items-center justify-center mb-8">
@@ -61,14 +61,14 @@ export default function Layout({ children }: LayoutProps) {
                 className={cn(
                   "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
                   item.current
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                    ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100",
                 )}
               >
                 <item.icon
                   className={cn(
                     "w-5 h-5",
-                    item.current ? "text-gray-600" : "text-gray-400",
+                    item.current ? "text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500",
                   )}
                 />
               </Link>

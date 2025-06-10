@@ -60,8 +60,8 @@ export default function Home() {
         {/* Trending section skeleton */}
         <div>
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">트랜딩</h1>
-            <p className="text-gray-600">최근 인기있는 영상들을 확인하세요</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">트랜딩</h1>
+            <p className="text-gray-600 dark:text-gray-400">최근 인기있는 영상들을 확인하세요</p>
           </div>
           <div className="relative">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -82,8 +82,8 @@ export default function Home() {
         {/* Recommended section skeleton */}
         <div>
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">추천 영상</h1>
-            <p className="text-gray-600">최근 등록된 영상들을 확인하세요</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">추천 영상</h1>
+            <p className="text-gray-600 dark:text-gray-400">최근 등록된 영상들을 확인하세요</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -107,8 +107,8 @@ export default function Home() {
       {/* Trending Section */}
       <div>
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">트랜딩</h1>
-          <p className="text-gray-600">최근 7일간 가장 인기있는 영상들을 확인하세요</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">트랜딩</h1>
+          <p className="text-gray-600 dark:text-gray-400">최근 7일간 가장 인기있는 영상들을 확인하세요</p>
         </div>
         
         <div className="relative">
@@ -125,8 +125,8 @@ export default function Home() {
                       <VideoCard video={video} />
                     </div>
                   ) : (
-                    <div className="w-full h-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
-                      <p className="text-gray-400 text-sm">빈 슬롯</p>
+                    <div className="w-full h-full border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-center">
+                      <p className="text-gray-400 dark:text-gray-500 text-sm">빈 슬롯</p>
                     </div>
                   )}
                 </div>
@@ -162,14 +162,14 @@ export default function Home() {
       {/* Recommended Section */}
       <div>
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">추천 영상</h1>
-          <p className="text-gray-600">최근 등록된 영상들을 확인하세요</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">추천 영상</h1>
+          <p className="text-gray-600 dark:text-gray-400">최근 등록된 영상들을 확인하세요</p>
         </div>
         
         {videoList.length === 0 ? (
           <div className="text-center py-12">
-            <h3 className="text-lg font-semibold mb-2">아직 추천 영상이 없습니다</h3>
-            <p className="text-gray-500">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">아직 추천 영상이 없습니다</h3>
+            <p className="text-gray-500 dark:text-gray-400">
               업보트를 받은 영상들이 여기에 표시됩니다
             </p>
           </div>
