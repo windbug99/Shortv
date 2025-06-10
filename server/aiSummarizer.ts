@@ -4,7 +4,7 @@ import {
   preprocessTranscript,
   chunkTranscript,
 } from "./transcriptExtractor";
-import { transcribeVideoAudio } from "./audioTranscriber";
+import { enhancedVideoTranscription } from "./enhancedAudioTranscriber";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -41,19 +41,25 @@ export async function generateAISummary(
           transcript = preprocessTranscript(transcript);
           console.log(`Using regular transcript for ${videoId}: ${transcript.length} characters`);
         } else {
-          // Method 2: Fallback to audio transcription using Whisper
-          console.log(`Regular transcript failed for ${videoId}, attempting audio transcription...`);
+          // Method 2: Enhanced audio transcription with LangChain MapReduce
+          console.log(`Regular transcript failed for ${videoId}, attempting enhanced audio transcription...`);
           try {
-            const audioResult = await transcribeVideoAudio(videoId);
-            if (audioResult.success && audioResult.transcript) {
-              transcript = preprocessTranscript(audioResult.transcript);
-              console.log(`Using audio transcript for ${videoId}: ${transcript.length} characters`);
+            const enhancedResult = await enhancedVideoTranscription(videoId);
+            if (enhancedResult.success && enhancedResult.transcript) {
+              transcript = preprocessTranscript(enhancedResult.transcript);
+              console.log(`Using enhanced audio transcript for ${videoId}: ${transcript.length} characters`);
+              
+              // If LangChain generated a summary, use it directly for detailed summaries
+              if (enhancedResult.summary && type === "detailed") {
+                console.log(`Using LangChain-generated summary for ${videoId}`);
+                return enhancedResult.summary;
+              }
             } else {
-              console.log(`Audio transcription failed for ${videoId}: ${audioResult.error || 'Unknown error'}`);
+              console.log(`Enhanced audio transcription failed for ${videoId}: ${enhancedResult.error || 'Unknown error'}`);
               console.log(`Proceeding with title and description only for ${videoId}`);
             }
           } catch (error) {
-            console.log(`Audio transcription error for ${videoId}:`, error);
+            console.log(`Enhanced audio transcription error for ${videoId}:`, error);
             console.log(`Proceeding with title and description only for ${videoId}`);
           }
         }
