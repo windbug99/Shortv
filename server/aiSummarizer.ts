@@ -4,6 +4,7 @@ import {
   preprocessTranscript,
   chunkTranscript,
 } from "./transcriptExtractor";
+import { transcribeVideoAudio } from "./audioTranscriber";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -34,9 +35,21 @@ export async function generateAISummary(
       // Try to extract video transcript for better analysis
       let transcript = null;
       if (videoId) {
+        // Method 1: Try regular transcript extraction first
         transcript = await extractVideoTranscript(videoId);
         if (transcript) {
           transcript = preprocessTranscript(transcript);
+          console.log(`Using regular transcript for ${videoId}: ${transcript.length} characters`);
+        } else {
+          // Method 2: Fallback to audio transcription using Whisper
+          console.log(`Regular transcript failed for ${videoId}, attempting audio transcription...`);
+          const audioResult = await transcribeVideoAudio(videoId);
+          if (audioResult.success && audioResult.transcript) {
+            transcript = preprocessTranscript(audioResult.transcript);
+            console.log(`Using audio transcript for ${videoId}: ${transcript.length} characters`);
+          } else {
+            console.log(`Audio transcription also failed for ${videoId}: ${audioResult.error || 'Unknown error'}`);
+          }
         }
       }
 
