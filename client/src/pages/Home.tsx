@@ -91,12 +91,34 @@ export default function Home() {
         </div>
         
         <div className="relative">
-          {/* Left slide button */}
+          {/* Video grid with same width as recommended section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => {
+              const videoIndex = trendingStartIndex + i;
+              const video = trendingVideoList[videoIndex];
+              
+              return (
+                <div key={i} className="h-[450px] flex relative">
+                  {video ? (
+                    <div className="w-full">
+                      <VideoCard video={video} />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
+                      <p className="text-gray-400 text-sm">빈 슬롯</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Left slide button positioned over the cards */}
           {showSlideButtons && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
               onClick={() => handleTrendingSlide('left')}
               disabled={!canSlideLeft}
             >
@@ -104,36 +126,12 @@ export default function Home() {
             </Button>
           )}
 
-          {/* Video grid */}
-          <div className="mx-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mx-8">
-              {Array.from({ length: 4 }).map((_, i) => {
-                const videoIndex = trendingStartIndex + i;
-                const video = trendingVideoList[videoIndex];
-                
-                return (
-                  <div key={i} className="h-[450px] flex">
-                    {video ? (
-                      <div className="w-full">
-                        <VideoCard video={video} />
-                      </div>
-                    ) : (
-                      <div className="w-full h-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
-                        <p className="text-gray-400 text-sm">빈 슬롯</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right slide button */}
+          {/* Right slide button positioned over the cards */}
           {showSlideButtons && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg hover:shadow-xl"
               onClick={() => handleTrendingSlide('right')}
               disabled={!canSlideRight}
             >
