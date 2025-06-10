@@ -269,7 +269,7 @@ export default function Feed() {
                 )}
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900">{video.channel.name}</h3>
+                <h3 className="font-medium text-[#fafafa]">{video.channel.name}</h3>
                 <p className="text-sm text-gray-500">
                   {formatTimeAgo(video.publishedAt)} • 
                   {video.duration && ` ${formatDuration(video.duration)} • `}
