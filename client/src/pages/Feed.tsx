@@ -305,7 +305,7 @@ export default function Feed() {
                 </Button>
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">{video.title}</h1>
+            <h1 className="text-2xl font-bold mb-4 text-[#fafafa]">{video.title}</h1>
             <p className="text-gray-600 leading-relaxed">
               {video.aiSummary || "AI 요약이 아직 생성되지 않았습니다."}
             </p>
