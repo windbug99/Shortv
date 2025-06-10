@@ -108,7 +108,7 @@ export default function Home() {
       <div>
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">트랜딩</h1>
-          <p className="text-gray-600">최근 인기있는 영상들을 확인하세요</p>
+          <p className="text-gray-600">최근 7일간 가장 인기있는 영상들을 확인하세요</p>
         </div>
         
         <div className="relative">
@@ -159,7 +159,6 @@ export default function Home() {
           )}
         </div>
       </div>
-
       {/* Recommended Section */}
       <div>
         <div className="mb-6">
