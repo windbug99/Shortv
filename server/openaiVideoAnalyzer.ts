@@ -82,41 +82,75 @@ async function extractAudioFromVideo(videoId: string): Promise<string | null> {
   
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      if (ytDlpProcess && !ytDlpProcess.killed) {
-        ytDlpProcess.kill('SIGKILL');
+      if (pythonProcess && !pythonProcess.killed) {
+        pythonProcess.kill('SIGKILL');
       }
       resolve(null);
     }, 120000); // 2 minute timeout
 
-    // Use yt-dlp to get direct video URL and extract audio
-    const ytDlpProcess = spawn('yt-dlp', [
-      '--extract-audio',
-      '--audio-format', 'mp3',
-      '--audio-quality', '0',
-      '--output', audioPath.replace('.mp3', '.%(ext)s'),
-      `https://www.youtube.com/watch?v=${videoId}`
-    ]);
+    // Use pytube Python script to extract audio
+    const pythonScript = `
+import sys
+sys.path.append('/opt/virtualenvs/python3/lib/python3.11/site-packages')
+from pytube import YouTube
+import os
 
-    ytDlpProcess.on('close', (code) => {
+try:
+    video_id = "${videoId}"
+    output_path = "${audioPath}"
+    
+    yt = YouTube(f"https://www.youtube.com/watch?v={video_id}")
+    
+    # Get audio stream with highest quality
+    audio_stream = yt.streams.filter(only_audio=True, file_extension='mp4').first()
+    
+    if audio_stream:
+        # Download audio
+        temp_file = audio_stream.download(output_path=os.path.dirname(output_path), filename_prefix=f"{video_id}_temp_")
+        
+        # Convert to mp3 using ffmpeg
+        import subprocess
+        subprocess.run([
+            'ffmpeg', '-i', temp_file, '-acodec', 'mp3', '-ab', '128k', output_path
+        ], check=True, capture_output=True)
+        
+        # Remove temp file
+        os.remove(temp_file)
+        print(f"SUCCESS: {output_path}")
+    else:
+        print("ERROR: No audio stream found")
+        
+except Exception as e:
+    print(f"ERROR: {str(e)}")
+`;
+
+    const pythonProcess = spawn('python3', ['-c', pythonScript]);
+
+    let output = '';
+    pythonProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      console.log(`Python stderr: ${data}`);
+    });
+
+    pythonProcess.on('close', (code) => {
       clearTimeout(timeout);
       
-      if (code === 0 && fs.existsSync(audioPath)) {
-        console.log(`Audio extracted successfully: ${audioPath}`);
+      if (output.includes('SUCCESS:') && fs.existsSync(audioPath)) {
+        console.log(`Audio extracted successfully with pytube: ${audioPath}`);
         resolve(audioPath);
       } else {
-        console.log(`Failed to extract audio for ${videoId}, code: ${code}`);
+        console.log(`Failed to extract audio for ${videoId} with pytube, code: ${code}`);
         resolve(null);
       }
     });
 
-    ytDlpProcess.on('error', (error) => {
+    pythonProcess.on('error', (error) => {
       clearTimeout(timeout);
-      console.error('yt-dlp error:', error);
+      console.error('Python process error:', error);
       resolve(null);
-    });
-
-    ytDlpProcess.stderr.on('data', (data) => {
-      console.log(`yt-dlp stderr: ${data}`);
     });
   });
 }
