@@ -9,6 +9,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface LayoutProps {
   children: ReactNode;
@@ -75,22 +76,28 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
 
-        {/* Account Navigation - Bottom */}
-        <div className="p-3">
+        {/* Theme Toggle and Account Navigation - Bottom */}
+        <div className="p-3 space-y-2">
+          {/* Theme Toggle Button */}
+          <div className="flex justify-center">
+            <ThemeToggle />
+          </div>
+          
+          {/* Account Link */}
           <Link
             href={accountNavigation.href}
             title={accountNavigation.name}
             className={cn(
               "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
               accountNavigation.current
-                ? "bg-gray-100 text-gray-900"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100",
             )}
           >
             <accountNavigation.icon
               className={cn(
                 "w-5 h-5",
-                accountNavigation.current ? "text-gray-600" : "text-gray-400",
+                accountNavigation.current ? "text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500",
               )}
             />
           </Link>
