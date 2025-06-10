@@ -116,13 +116,34 @@ async function performAudioTranscription(videoId: string, title: string): Promis
 }
 
 async function extractAudioSegment(videoId: string, outputPath: string, durationSeconds: number): Promise<boolean> {
+  // Method 1: Try yt-dlp first
+  console.log(`Attempting yt-dlp extraction for ${videoId}`);
+  const ytDlpSuccess = await tryYtDlpExtraction(videoId, outputPath, durationSeconds);
+  if (ytDlpSuccess) {
+    console.log(`yt-dlp extraction successful for ${videoId}`);
+    return true;
+  }
+
+  // Method 2: Try pytube as fallback
+  console.log(`yt-dlp failed, trying pytube for ${videoId}`);
+  const pytubeSuccess = await tryPytubeExtraction(videoId, outputPath, durationSeconds);
+  if (pytubeSuccess) {
+    console.log(`Pytube extraction successful for ${videoId}`);
+    return true;
+  }
+
+  console.log(`All audio extraction methods failed for ${videoId}`);
+  return false;
+}
+
+async function tryYtDlpExtraction(videoId: string, outputPath: string, durationSeconds: number): Promise<boolean> {
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       if (ytDlp && !ytDlp.killed) {
-        ytDlp.kill('SIGTERM');
+        ytDlp.kill('SIGKILL');
       }
       resolve(false);
-    }, 60000); // 1 minute max
+    }, 45000); // 45 seconds max
 
     const ytDlp = spawn('yt-dlp', [
       '--extract-audio',
@@ -139,6 +160,34 @@ async function extractAudioSegment(videoId: string, outputPath: string, duration
     });
 
     ytDlp.on('error', () => {
+      clearTimeout(timeout);
+      resolve(false);
+    });
+  });
+}
+
+async function tryPytubeExtraction(videoId: string, outputPath: string, durationSeconds: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      if (pythonProcess && !pythonProcess.killed) {
+        pythonProcess.kill('SIGKILL');
+      }
+      resolve(false);
+    }, 30000); // 30 seconds max
+
+    const pythonProcess = spawn('python3', [
+      path.join(process.cwd(), 'server', 'pytubeExtractor.py'),
+      videoId,
+      outputPath,
+      durationSeconds.toString()
+    ]);
+
+    pythonProcess.on('close', (code) => {
+      clearTimeout(timeout);
+      resolve(code === 0 && fs.existsSync(outputPath));
+    });
+
+    pythonProcess.on('error', () => {
       clearTimeout(timeout);
       resolve(false);
     });
