@@ -9,22 +9,40 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { formatDuration } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export default function Feed() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   
   // Extract video ID from URL
   const videoId = window.location.pathname.split("/").pop();
 
-  const { data: videos = [] } = useQuery({
+  // Try to get video from user feed first (if authenticated)
+  const { data: userVideos = [] } = useQuery({
     queryKey: ["/api/videos/feed"],
+    enabled: isAuthenticated,
   });
 
-  const videosArray = Array.isArray(videos) ? videos : [];
-  const video = videosArray.find((v: any) => v.id.toString() === videoId);
+  // Also get recommended videos (always available)
+  const { data: recommendedVideos = [] } = useQuery({
+    queryKey: ["/api/videos/recommended"],
+  });
+
+  // Combine videos from both sources and find the video
+  const userVideosArray = Array.isArray(userVideos) ? userVideos : [];
+  const recommendedVideosArray = Array.isArray(recommendedVideos) ? recommendedVideos : [];
+  const allVideos = [...userVideosArray, ...recommendedVideosArray];
+  
+  // Remove duplicates by video ID
+  const uniqueVideos = allVideos.filter((video, index, self) => 
+    index === self.findIndex((v) => v.id === video.id)
+  );
+  
+  const video = uniqueVideos.find((v: any) => v.id.toString() === videoId);
 
   const incrementViewMutation = useMutation({
     mutationFn: async () => {
@@ -43,6 +61,7 @@ export default function Feed() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/videos/recommended"] });
       toast({
         title: data.upvoted ? "업보트 추가" : "업보트 제거",
         description: data.upvoted ? "영상에 업보트를 추가했습니다." : "영상에서 업보트를 제거했습니다.",
@@ -51,8 +70,8 @@ export default function Feed() {
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
-          title: "인증 오류",
-          description: "다시 로그인해주세요.",
+          title: "로그인 필요",
+          description: "업보트를 하려면 로그인이 필요합니다.",
           variant: "destructive",
         });
         setTimeout(() => {
@@ -67,6 +86,23 @@ export default function Feed() {
       });
     },
   });
+
+  const handleUpvote = () => {
+    // Check if user is authenticated before allowing upvote
+    if (!isAuthenticated) {
+      toast({
+        title: "로그인 필요",
+        description: "업보트를 하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+    
+    upvoteMutation.mutate();
+  };
 
   // Increment view count when page loads
   useEffect(() => {
@@ -133,7 +169,7 @@ export default function Feed() {
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          피드로 돌아가기
+          홈으로 돌아가기
         </Button>
 
         {/* Video Header */}
@@ -176,7 +212,7 @@ export default function Feed() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => upvoteMutation.mutate()}
+                  onClick={handleUpvote}
                   disabled={upvoteMutation.isPending}
                   className={`flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors ${
                     video.userUpvoted 
