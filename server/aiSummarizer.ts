@@ -4,7 +4,6 @@ import {
   preprocessTranscript,
   chunkTranscript,
 } from "./transcriptExtractor";
-import { generateGPT4oSummary } from "./hybridVideoAnalyzer";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -18,20 +17,6 @@ export async function generateAISummary(
 ): Promise<string> {
   const maxRetries = 2;
   let lastError: Error | null = null;
-
-  // Try GPT-4o first if OpenAI API key is available
-  if (process.env.OPENAI_API_KEY && videoId) {
-    try {
-      console.log(`Attempting GPT-4o analysis for ${videoId}`);
-      const gpt4oResult = await generateGPT4oSummary(title, description, type, videoId);
-      if (gpt4oResult && !gpt4oResult.includes("오류가 발생했습니다")) {
-        console.log(`GPT-4o analysis successful for ${videoId}`);
-        return gpt4oResult;
-      }
-    } catch (error) {
-      console.warn(`GPT-4o analysis failed for ${videoId}, falling back to Gemini:`, error);
-    }
-  }
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
