@@ -282,7 +282,7 @@ export default function Feed() {
                   size="sm"
                   onClick={handleSubscribe}
                   disabled={subscriptionMutation.isPending || subscriptionData?.subscribed}
-                  className="flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                  className="flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="text-sm font-medium">채널추가</span>
@@ -294,12 +294,12 @@ export default function Feed() {
                   disabled={upvoteMutation.isPending}
                   className={`flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors ${
                     video.userUpvoted 
-                      ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100" 
-                      : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                      ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-400 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30" 
+                      : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                   }`}
                 >
                   <CircleArrowUp 
-                    className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
+                    className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500 dark:text-gray-400"}`}
                   />
                   <span className="text-sm font-medium">{video.upvoteCount || 0}</span>
                 </Button>
@@ -359,7 +359,7 @@ export default function Feed() {
                   size="sm"
                   onClick={handleSubscribe}
                   disabled={subscriptionMutation.isPending || subscriptionData?.subscribed}
-                  className="flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                  className="flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="text-sm font-medium">채널추가</span>
@@ -371,12 +371,12 @@ export default function Feed() {
                   disabled={upvoteMutation.isPending}
                   className={`flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors ${
                     video.userUpvoted 
-                      ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100" 
-                      : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                      ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-400 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30" 
+                      : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                   }`}
                 >
                   <CircleArrowUp 
-                    className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
+                    className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500 dark:text-gray-400"}`}
                   />
                   <span className="text-sm font-medium">{video.upvoteCount || 0}</span>
                 </Button>
