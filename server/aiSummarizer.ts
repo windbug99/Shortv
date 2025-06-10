@@ -28,7 +28,7 @@ export async function generateAISummary(
       }
 
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-lite",
+        model: "gemini-1.5-flash",
       });
 
       // Try to extract video transcript for better analysis
@@ -38,9 +38,13 @@ export async function generateAISummary(
         transcript = await extractVideoTranscript(videoId);
         if (transcript) {
           transcript = preprocessTranscript(transcript);
-          console.log(`Using regular transcript for ${videoId}: ${transcript.length} characters`);
+          console.log(
+            `Using regular transcript for ${videoId}: ${transcript.length} characters`,
+          );
         } else {
-          console.log(`No transcript available for ${videoId}, proceeding with title and description only`);
+          console.log(
+            `No transcript available for ${videoId}, proceeding with title and description only`,
+          );
         }
       }
 
@@ -137,7 +141,14 @@ export async function generateAISummary(
       console.log(
         `AI summary generated successfully on attempt ${attempt} for video ${videoId || "unknown"}`,
       );
-      return text.trim();
+      
+      // Add indicator if no transcript was available
+      const finalText = text.trim();
+      if (!transcript) {
+        return finalText + (type === "introduction" ? " (스크립트 없음)" : "\n\n(스크립트 없음)");
+      }
+      
+      return finalText;
     } catch (error) {
       lastError = error as Error;
       console.error(
