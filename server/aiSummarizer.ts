@@ -28,7 +28,7 @@ export async function generateAISummary(
       }
 
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash-preview-05-20",
       });
 
       // Try to extract video transcript for better analysis
@@ -56,23 +56,22 @@ export async function generateAISummary(
           : "";
 
         prompt = `
-다음 YouTube 영상의 제목과 스크립트를 기반으로 핵심주제를 정확히 88자 이상 98자 이하로 요약해 문어체로 작성해주세요.
+다음과 같이 요약해주세요:
 
 제목: ${title}
 설명: ${description}${transcriptText}
 
-중요한 제약사항:
-- 반드시 88자 이상 98자 이하여야 함 (공백 포함)
-- 98자를 초과하면 안 됨 (절대적 제한)
-- 문어체 사용 필수
-- 가이드 문자는 출력하지 않음
-- ${transcript ? "스크립트의 실제 내용을 반영하여" : ""} 핵심 내용만 간결하게 정리
-- 응답 전 글자 수를 직접 세어서 확인할 것
-- 98자를 초과하면 문장을 줄여서 다시 작성할 것
+형식:
+첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
+둘째 줄부터: 88자 이상 98자 이하 요약 내용
 
-정확한 길이 예시:
-88자: "이 영상은 YouTube 채널 구독과 AI 요약 기능을 통해 개인화된 비디오 피드를 제공하는 혁신적인 플랫폼의 사용법을 소개한다."
-98자: "이 영상은 YouTube 채널 구독과 AI 요약 기능을 통해 개인화된 비디오 피드를 제공하는 혁신적인 플랫폼의 사용법과 주요 특징들을 상세히 소개하는 튜토리얼입니다."
+중요한 제약사항:
+- 첫 줄에 반드시 스크립트 상태 명시
+- 요약은 88자 이상 98자 이하 (공백 포함)
+- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
+- 외부 정보나 추측 내용 절대 포함 금지
+- 문어체 사용
+- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 `;
       } else {
         const transcriptChunks = transcript
@@ -95,24 +94,32 @@ export async function generateAISummary(
           : "";
 
         prompt = `
-다음 YouTube 영상의 전체 스크립트를 기반으로 시간의 흐름에 따라 체계적인 핵심정리를 작성해주세요.
+다음과 같이 요약해주세요:
 
-영상 ID: ${videoId || "unknown"}
 제목: ${title}
 설명: ${description}${transcriptSection}
 
-핵심정리 작성 원칙:
-- 정확한 정보제공이 목적
-- 전체 스크립트 기반으로 시간의 흐름대로 명확한 내용 정리
-- 시간대로 주요주제를 도출하고 관련 내용을 요약
-- 스크립트에서 언급된 핵심키워드, 구체적인 사실, 데이터, 예시를 정확히 반영
-- 마크다운 형식 사용
-- 한국어 문어체를 기본으로 필요시 볼드와 리스트 활용
+형식:
+첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
 
-필수사항(반드시 준수):
-- 절대 스크립트에 없는 내용은 포함하지 않음
-- 과도한 축약은 지양
-- 가이드 텍스트, 타임스탬프는 출력하지 않음
+# 핵심정리
+
+### 1. 섹션 제목
+- 세부내용
+
+### 2. 섹션 제목  
+- 세부내용
+
+## 핵심 결론
+- 전체적인 결론
+
+중요한 제약사항:
+- 첫 줄에 반드시 스크립트 상태 명시
+- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
+- 외부 정보나 추측 내용 절대 포함 금지
+- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
+- 구체적이고 실용적인 내용 포함
+- 전체 요약 길이: 300-500자
 
 출력 형식 (반드시 준수):
 # 핵심정리
@@ -141,14 +148,9 @@ export async function generateAISummary(
       console.log(
         `AI summary generated successfully on attempt ${attempt} for video ${videoId || "unknown"}`,
       );
-      
-      // Add indicator if no transcript was available
-      const finalText = text.trim();
-      if (!transcript) {
-        return finalText + (type === "introduction" ? " (스크립트 없음)" : "\n\n(스크립트 없음)");
-      }
-      
-      return finalText;
+
+      // Return the text as is (스크립트 상태는 이미 프롬프트에서 포함됨)
+      return text.trim();
     } catch (error) {
       lastError = error as Error;
       console.error(
