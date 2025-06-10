@@ -16,7 +16,7 @@ import {
   type InsertUserChannelSubscription,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, count } from "drizzle-orm";
+import { eq, desc, and, sql, count, gte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for auth)
