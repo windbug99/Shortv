@@ -4,7 +4,7 @@ import {
   preprocessTranscript,
   chunkTranscript,
 } from "./transcriptExtractor";
-import { enhancedVideoTranscription } from "./enhancedAudioTranscriber";
+import { smartVideoAnalysis } from "./smartVideoAnalyzer";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -41,26 +41,28 @@ export async function generateAISummary(
           transcript = preprocessTranscript(transcript);
           console.log(`Using regular transcript for ${videoId}: ${transcript.length} characters`);
         } else {
-          // Method 2: Enhanced audio transcription with LangChain MapReduce
-          console.log(`Regular transcript failed for ${videoId}, attempting enhanced audio transcription...`);
+          // Method 2: Practical enhanced transcription with LangChain
+          console.log(`Regular transcript failed for ${videoId}, attempting practical enhanced transcription...`);
           try {
-            const enhancedResult = await enhancedVideoTranscription(videoId);
-            if (enhancedResult.success && enhancedResult.transcript) {
-              transcript = preprocessTranscript(enhancedResult.transcript);
-              console.log(`Using enhanced audio transcript for ${videoId}: ${transcript.length} characters`);
+            const practicalResult = await practicalVideoTranscription(videoId, title, description);
+            if (practicalResult.success) {
+              if (practicalResult.transcript) {
+                transcript = preprocessTranscript(practicalResult.transcript);
+                console.log(`Using ${practicalResult.method} transcript for ${videoId}: ${transcript.length} characters`);
+              }
               
-              // If LangChain generated a summary, use it directly for detailed summaries
-              if (enhancedResult.summary && type === "detailed") {
-                console.log(`Using LangChain-generated summary for ${videoId}`);
-                return enhancedResult.summary;
+              // If enhanced analysis generated a summary, use it directly
+              if (practicalResult.summary && type === "detailed") {
+                console.log(`Using ${practicalResult.method} summary for ${videoId}`);
+                return practicalResult.summary;
               }
             } else {
-              console.log(`Enhanced audio transcription failed for ${videoId}: ${enhancedResult.error || 'Unknown error'}`);
-              console.log(`Proceeding with title and description only for ${videoId}`);
+              console.log(`Practical transcription failed for ${videoId}: ${practicalResult.error || 'Unknown error'}`);
+              console.log(`Proceeding with title and description analysis for ${videoId}`);
             }
           } catch (error) {
-            console.log(`Enhanced audio transcription error for ${videoId}:`, error);
-            console.log(`Proceeding with title and description only for ${videoId}`);
+            console.log(`Practical transcription error for ${videoId}:`, error);
+            console.log(`Proceeding with title and description analysis for ${videoId}`);
           }
         }
       }
