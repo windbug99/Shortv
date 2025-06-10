@@ -4,7 +4,6 @@ import {
   preprocessTranscript,
   chunkTranscript,
 } from "./transcriptExtractor";
-import { analyzeVideoWithGemini } from "./videoAnalyzer";
 
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
@@ -34,8 +33,6 @@ export async function generateAISummary(
 
       // Try to extract video transcript for better analysis
       let transcript = null;
-      let visionAnalysis = null;
-      
       if (videoId) {
         // Method 1: Try regular transcript extraction first
         transcript = await extractVideoTranscript(videoId);
@@ -46,109 +43,64 @@ export async function generateAISummary(
           );
         } else {
           console.log(
-            `No transcript available for ${videoId}, trying Gemini vision analysis`,
+            `No transcript available for ${videoId}, proceeding with title and description only`,
           );
-          
-          // Method 2: Try Gemini vision analysis on thumbnail
-          const visionResult = await analyzeVideoWithGemini(videoId, title, description);
-          if (visionResult.success && visionResult.summary) {
-            visionAnalysis = visionResult.summary;
-            console.log(
-              `Using Gemini vision analysis for ${videoId}: ${visionAnalysis.length} characters`,
-            );
-          } else {
-            console.log(
-              `Vision analysis also failed for ${videoId}, proceeding with title and description only`,
-            );
-          }
         }
       }
 
       let prompt: string;
 
       if (type === "introduction") {
-        const contentSource = transcript 
+        const transcriptText = transcript
           ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}`
-          : visionAnalysis 
-          ? `\n영상 분석: ${visionAnalysis.substring(0, 4000)}${visionAnalysis.length > 4000 ? "..." : ""}`
           : "";
-
-        const statusLabel = transcript 
-          ? "스크립트 있음" 
-          : visionAnalysis 
-          ? "영상 분석" 
-          : "스크립트 없음";
-
-        const contentConstraint = transcript 
-          ? "스크립트의 실제 내용만" 
-          : visionAnalysis 
-          ? "영상 분석 결과의 내용만" 
-          : "제목과 설명의 내용만";
-
-        const avoidanceConstraint = transcript 
-          ? "스크립트에 없는 내용은 언급하지 않음" 
-          : visionAnalysis 
-          ? "영상 분석에 없는 내용은 언급하지 않음" 
-          : "제목과 설명에 없는 내용은 언급하지 않음";
 
         prompt = `
 다음과 같이 요약해주세요:
 
 제목: ${title}
-설명: ${description}${contentSource}
+설명: ${description}${transcriptText}
 
 형식:
-첫 줄: "${statusLabel}"
+첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
 둘째 줄부터: 88자 이상 98자 이하 요약 내용
 
 중요한 제약사항:
-- 첫 줄에 반드시 콘텐츠 상태 명시
-- 요약은 88자 이상 98자 이하 (공백 포함)  
-- ${contentConstraint} 사용
+- 첫 줄에 반드시 스크립트 상태 명시
+- 요약은 88자 이상 98자 이하 (공백 포함)
+- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
 - 문어체 사용
-- ${avoidanceConstraint}
+- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 `;
       } else {
-        const contentChunks = transcript
+        const transcriptChunks = transcript
           ? chunkTranscript(transcript, 6000)
-          : visionAnalysis 
-          ? [visionAnalysis]
           : [];
-        const mainContent = contentChunks.length > 0 ? contentChunks[0] : transcript || visionAnalysis;
+        const transcriptContent =
+          transcriptChunks.length > 0 ? transcriptChunks[0] : transcript;
 
-        const statusLabel = transcript 
-          ? "스크립트 있음" 
-          : visionAnalysis 
-          ? "영상 분석" 
-          : "스크립트 없음";
-
-        const contentSection = transcript
-          ? `\n영상 스크립트: ${mainContent}`
-          : visionAnalysis
-          ? `\n영상 분석: ${mainContent}`
+        const analysisBase = transcript
+          ? "실제 스크립트를 바탕으로"
+          : "제목과 설명을 바탕으로";
+        const transcriptSection = transcript
+          ? `\n영상 스크립트: ${transcriptContent}`
           : "";
-
-        const contentConstraint = transcript 
-          ? "스크립트의 실제 내용만" 
-          : visionAnalysis 
-          ? "영상 분석 결과의 내용만" 
-          : "제목과 설명의 내용만";
-
-        const avoidanceConstraint = transcript 
-          ? "스크립트에 없는 내용은 언급하지 않음" 
-          : visionAnalysis 
-          ? "영상 분석에 없는 내용은 언급하지 않음" 
-          : "제목과 설명에 없는 내용은 언급하지 않음";
+        const contentRequirement = transcript
+          ? "실제 스크립트 내용을 기반으로"
+          : "";
+        const specificContent = transcript
+          ? "스크립트에서 언급된 구체적인 내용과 주요 포인트를 포함할 것"
+          : "";
 
         prompt = `
 다음과 같이 요약해주세요:
 
 제목: ${title}
-설명: ${description}${contentSection}
+설명: ${description}${transcriptSection}
 
 형식:
-첫 줄: "${statusLabel}"
+첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
 
 # 핵심정리
 
@@ -162,10 +114,10 @@ export async function generateAISummary(
 - 전체적인 결론
 
 중요한 제약사항:
-- 첫 줄에 반드시 콘텐츠 상태 명시
-- ${contentConstraint} 사용
+- 첫 줄에 반드시 스크립트 상태 명시
+- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
-- ${avoidanceConstraint}
+- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 - 구체적이고 실용적인 내용 포함
 - 전체 요약 길이: 300-500자
 
@@ -181,7 +133,7 @@ export async function generateAISummary(
 - 단락 내 주요 포인트 요약
 
 ### 3. [세 번째 주요주제]
-(콘텐츠 길이에 따라 단락 수는 조정 가능)
+(스크립트 길이에 따라 단락 수는 조정 가능)
 
 ## 핵심 결론
 - 영상에서 전달하고자 하는 주요 메시지
