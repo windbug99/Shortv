@@ -3,7 +3,7 @@ import VideoCard from "@/components/VideoCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [trendingStartIndex, setTrendingStartIndex] = useState(0);
@@ -21,17 +21,38 @@ export default function Home() {
   const trendingVideoList = Array.isArray(trendingVideos) ? trendingVideos : [];
   const videoList = Array.isArray(videos) ? videos : [];
 
+  // Determine cards per view based on screen size
+  const getCardsPerView = () => {
+    if (typeof window === 'undefined') return 4;
+    if (window.innerWidth >= 1280) return 4; // xl
+    if (window.innerWidth >= 1024) return 3; // lg
+    if (window.innerWidth >= 768) return 2;  // md
+    return 1; // sm
+  };
+
+  const [cardsPerView, setCardsPerView] = useState(getCardsPerView());
+
+  // Update cards per view on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setCardsPerView(getCardsPerView());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleTrendingSlide = (direction: 'left' | 'right') => {
     if (direction === 'left') {
-      setTrendingStartIndex(Math.max(0, trendingStartIndex - 4));
+      setTrendingStartIndex(Math.max(0, trendingStartIndex - cardsPerView));
     } else {
-      setTrendingStartIndex(Math.min(Math.max(0, trendingVideoList.length - 4), trendingStartIndex + 4));
+      setTrendingStartIndex(Math.min(Math.max(0, trendingVideoList.length - cardsPerView), trendingStartIndex + cardsPerView));
     }
   };
 
   const canSlideLeft = trendingStartIndex > 0;
-  const canSlideRight = trendingStartIndex + 4 < trendingVideoList.length;
-  const showSlideButtons = trendingVideoList.length > 4;
+  const canSlideRight = trendingStartIndex + cardsPerView < trendingVideoList.length;
+  const showSlideButtons = trendingVideoList.length > cardsPerView;
 
   if (isLoading || trendingLoading) {
     return (
@@ -45,7 +66,7 @@ export default function Home() {
           <div className="relative">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-4">
+                <div key={i} className="h-[450px] space-y-4">
                   <Skeleton className="aspect-video w-full rounded-xl" />
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-3/4" />
@@ -91,9 +112,9 @@ export default function Home() {
         </div>
         
         <div className="relative">
-          {/* Video grid with same width as recommended section */}
+          {/* Video grid - responsive single row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 4 }).map((_, i) => {
+            {Array.from({ length: cardsPerView }).map((_, i) => {
               const videoIndex = trendingStartIndex + i;
               const video = trendingVideoList[videoIndex];
               
@@ -118,7 +139,7 @@ export default function Home() {
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0 bg-[#0f0504d9]"
+              className="absolute left-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0 bg-[#0f0504d9] hover:bg-[#0f0504] rounded-full"
               onClick={() => handleTrendingSlide('left')}
             >
               <ChevronLeft className="h-4 w-4 text-white" />
@@ -130,7 +151,7 @@ export default function Home() {
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0 bg-[#0f0504d9]"
+              className="absolute right-5 top-1/2 -translate-y-1/2 z-10 shadow-lg hover:shadow-xl border-0 bg-[#0f0504d9] hover:bg-[#0f0504] rounded-full"
               onClick={() => handleTrendingSlide('right')}
             >
               <ChevronRight className="h-4 w-4 text-white" />
