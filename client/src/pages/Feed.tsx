@@ -280,6 +280,16 @@ export default function Feed() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={handleSubscribe}
+                  disabled={subscriptionMutation.isPending || subscriptionData?.subscribed}
+                  className="flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">채널추가</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleUpvote}
                   disabled={upvoteMutation.isPending}
                   className={`flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors ${
