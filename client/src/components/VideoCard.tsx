@@ -39,6 +39,7 @@ export default function VideoCard({ video }: VideoCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/videos/recommended"] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {

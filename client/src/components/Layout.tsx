@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { Play, Home, Tv, User } from "lucide-react";
+import { Play, Home, Tv, User, Rss } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -13,9 +13,10 @@ export default function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
 
   const mainNavigation = [
-    { name: "Home", href: "/", icon: Home, current: location === "/" },
+    { name: "홈", href: "/", icon: Home, current: location === "/" },
+    { name: "피드", href: "/feed", icon: Rss, current: location === "/feed" },
     {
-      name: "Channel",
+      name: "채널",
       href: "/channel",
       icon: Tv,
       current: location === "/channel",
@@ -23,7 +24,7 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   const accountNavigation = {
-    name: "Account",
+    name: "계정",
     href: "/account",
     icon: User,
     current: location === "/account",

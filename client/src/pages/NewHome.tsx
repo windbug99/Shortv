@@ -20,6 +20,8 @@ export default function NewHome() {
     );
   }
 
+  const videoList = Array.isArray(videos) ? videos : [];
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -29,7 +31,7 @@ export default function NewHome() {
         </p>
       </div>
 
-      {!videos || videos.length === 0 ? (
+      {videoList.length === 0 ? (
         <div className="text-center py-12">
           <h3 className="text-lg font-semibold mb-2">No recommended videos yet</h3>
           <p className="text-muted-foreground">
@@ -38,7 +40,7 @@ export default function NewHome() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {videos.map((video: any) => (
+          {videoList.map((video: any) => (
             <VideoCard key={video.id} video={video} />
           ))}
         </div>
