@@ -329,54 +329,58 @@ export default function Feed() {
             </div>
             
             {/* Action Buttons */}
-            <div className="flex items-center space-x-4 mt-8 pt-6 border-t border-gray-200">
-              <Button
-                variant="ghost"
-                onClick={handleGoBack}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                뒤로가기
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleShare}
-              >
-                <Share className="w-4 h-4 mr-2" />
-                공유
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleOpenOriginal}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                YouTube에서 보기
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSubscribe}
-                disabled={subscriptionMutation.isPending || subscriptionData?.subscribed}
-                className="flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="text-sm font-medium">채널추가</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleUpvote}
-                disabled={upvoteMutation.isPending}
-                className={`flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors ${
-                  video.userUpvoted 
-                    ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100" 
-                    : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <CircleArrowUp 
-                  className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
-                />
-                <span className="text-sm font-medium">{video.upvoteCount || 0}</span>
-              </Button>
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  onClick={handleGoBack}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  뒤로가기
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleShare}
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  공유
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleOpenOriginal}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  YouTube에서 보기
+                </Button>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSubscribe}
+                  disabled={subscriptionMutation.isPending || subscriptionData?.subscribed}
+                  className="flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">채널추가</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUpvote}
+                  disabled={upvoteMutation.isPending}
+                  className={`flex items-center space-x-1 px-3 py-1.5 border rounded-md transition-colors ${
+                    video.userUpvoted 
+                      ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100" 
+                      : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <CircleArrowUp 
+                    className={`w-4 h-4 ${video.userUpvoted ? "text-red-500" : "text-gray-500"}`}
+                  />
+                  <span className="text-sm font-medium">{video.upvoteCount || 0}</span>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
