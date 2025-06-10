@@ -104,7 +104,7 @@ export async function generateAISummary(
 필수사항(반드시 준수):
 - 절대 스크립트에 없는 내용은 포함하지 않음
 - 과도한 축약은 지양
-- 가이드, 타임스탬프 문자는 출력하지 않음
+- 가이드 텍스트, 타임스탬프는 출력하지 않음
 
 출력 형식 (반드시 준수):
 # 핵심정리
@@ -130,26 +130,34 @@ export async function generateAISummary(
       const response = await result.response;
       const text = response.text();
 
-      console.log(`AI summary generated successfully on attempt ${attempt} for video ${videoId || "unknown"}`);
+      console.log(
+        `AI summary generated successfully on attempt ${attempt} for video ${videoId || "unknown"}`,
+      );
       return text.trim();
     } catch (error) {
       lastError = error as Error;
-      console.error(`AI summary generation failed on attempt ${attempt}/${maxRetries} for video ${videoId || "unknown"}:`, error);
-      
+      console.error(
+        `AI summary generation failed on attempt ${attempt}/${maxRetries} for video ${videoId || "unknown"}:`,
+        error,
+      );
+
       // If this was the last attempt, we'll fall through to the final error handling
       if (attempt === maxRetries) {
         break;
       }
-      
+
       // Wait a bit before retrying (exponential backoff)
       const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s delays
       console.log(`Retrying AI summary generation in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
   // If we get here, all attempts failed
-  console.error(`All ${maxRetries} attempts failed for AI summary generation. Last error:`, lastError);
+  console.error(
+    `All ${maxRetries} attempts failed for AI summary generation. Last error:`,
+    lastError,
+  );
   return type === "introduction"
     ? "AI 요약을 생성하는 중 오류가 발생했습니다."
     : "# 핵심정리\n\nAI 요약을 생성하는 중 오류가 발생했습니다.";
