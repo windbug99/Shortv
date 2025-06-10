@@ -20,6 +20,11 @@ export async function transcribeVideoAudio(videoId: string): Promise<AudioTransc
   try {
     console.log(`Starting audio transcription for video: ${videoId}`);
     
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      return { success: false, error: 'OpenAI API key not available for Whisper transcription' };
+    }
+    
     // Create temp directories
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
@@ -28,27 +33,32 @@ export async function transcribeVideoAudio(videoId: string): Promise<AudioTransc
       fs.mkdirSync(chunksDir, { recursive: true });
     }
 
-    // Step 1: Extract audio using yt-dlp
+    // Step 1: Extract audio using yt-dlp with timeout
     console.log('Extracting audio from video...');
-    const audioExtracted = await extractAudio(videoId, audioPath);
+    const audioExtracted = await Promise.race([
+      extractAudio(videoId, audioPath),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 180000)) // 3 minute timeout
+    ]);
+    
     if (!audioExtracted) {
-      return { success: false, error: 'Failed to extract audio from video' };
+      return { success: false, error: 'Failed to extract audio from video or timeout exceeded' };
     }
 
-    // Step 2: Split audio into chunks
+    // Step 2: Split audio into chunks (limit to first 10 minutes for efficiency)
     console.log('Splitting audio into chunks...');
-    const chunkPaths = await splitAudioIntoChunks(audioPath, chunksDir);
+    const chunkPaths = await splitAudioIntoChunks(audioPath, chunksDir, 600); // 10 minutes max
     if (chunkPaths.length === 0) {
       return { success: false, error: 'Failed to split audio into chunks' };
     }
 
-    // Step 3: Transcribe each chunk using Whisper
-    console.log(`Transcribing ${chunkPaths.length} audio chunks...`);
+    // Step 3: Transcribe chunks (limit to first 5 chunks for efficiency)
+    const maxChunks = Math.min(chunkPaths.length, 5);
+    console.log(`Transcribing ${maxChunks} audio chunks...`);
     const transcripts: string[] = [];
     
-    for (let i = 0; i < chunkPaths.length; i++) {
+    for (let i = 0; i < maxChunks; i++) {
       const chunkPath = chunkPaths[i];
-      console.log(`Transcribing chunk ${i + 1}/${chunkPaths.length}`);
+      console.log(`Transcribing chunk ${i + 1}/${maxChunks}`);
       
       try {
         const chunkTranscript = await transcribeAudioChunk(chunkPath);
@@ -71,7 +81,7 @@ export async function transcribeVideoAudio(videoId: string): Promise<AudioTransc
       .replace(/\s+/g, ' ')
       .trim();
 
-    console.log(`Successfully transcribed audio: ${fullTranscript.length} characters`);
+    console.log(`Successfully transcribed audio: ${fullTranscript.length} characters from ${transcripts.length} chunks`);
 
     return {
       success: true,
@@ -105,10 +115,17 @@ export async function transcribeVideoAudio(videoId: string): Promise<AudioTransc
 
 async function extractAudio(videoId: string, outputPath: string): Promise<boolean> {
   return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      console.log('Audio extraction timeout, killing process...');
+      ytDlp.kill('SIGTERM');
+      resolve(false);
+    }, 300000); // 5 minute timeout
+
     const ytDlp = spawn('yt-dlp', [
       '--extract-audio',
       '--audio-format', 'wav',
-      '--audio-quality', '0',
+      '--audio-quality', '5', // Lower quality for faster processing
+      '--max-filesize', '100M', // Limit file size
       '--output', outputPath.replace('.wav', '.%(ext)s'),
       `https://www.youtube.com/watch?v=${videoId}`
     ]);
@@ -124,6 +141,7 @@ async function extractAudio(videoId: string, outputPath: string): Promise<boolea
     });
 
     ytDlp.on('close', (code) => {
+      clearTimeout(timeout);
       if (code === 0 && !hasError && fs.existsSync(outputPath)) {
         resolve(true);
       } else {
@@ -133,13 +151,14 @@ async function extractAudio(videoId: string, outputPath: string): Promise<boolea
     });
 
     ytDlp.on('error', (error) => {
+      clearTimeout(timeout);
       console.error('yt-dlp spawn error:', error);
       resolve(false);
     });
   });
 }
 
-async function splitAudioIntoChunks(audioPath: string, chunksDir: string): Promise<string[]> {
+async function splitAudioIntoChunks(audioPath: string, chunksDir: string, maxDuration?: number): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const chunkPaths: string[] = [];
     const chunkDuration = 120; // 2 minutes per chunk
@@ -151,8 +170,9 @@ async function splitAudioIntoChunks(audioPath: string, chunksDir: string): Promi
         return;
       }
 
-      const duration = metadata.format.duration || 0;
-      const numberOfChunks = Math.ceil(duration / chunkDuration);
+      const actualDuration = metadata.format.duration || 0;
+      const limitedDuration = maxDuration ? Math.min(actualDuration, maxDuration) : actualDuration;
+      const numberOfChunks = Math.ceil(limitedDuration / chunkDuration);
       let completedChunks = 0;
 
       if (numberOfChunks === 0) {
