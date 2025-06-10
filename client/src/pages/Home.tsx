@@ -105,18 +105,20 @@ export default function Home() {
           )}
 
           {/* Video grid */}
-          <div className="mx-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="mx-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mx-8">
               {Array.from({ length: 4 }).map((_, i) => {
                 const videoIndex = trendingStartIndex + i;
                 const video = trendingVideoList[videoIndex];
                 
                 return (
-                  <div key={i} className="min-h-[300px]">
+                  <div key={i} className="h-[450px] flex">
                     {video ? (
-                      <VideoCard video={video} />
+                      <div className="w-full">
+                        <VideoCard video={video} />
+                      </div>
                     ) : (
-                      <div className="h-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
+                      <div className="w-full h-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
                         <p className="text-gray-400 text-sm">빈 슬롯</p>
                       </div>
                     )}

@@ -112,7 +112,7 @@ export default function VideoCard({ video }: VideoCardProps) {
 
   return (
     <Card 
-      className="video-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      className="video-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-full flex flex-col"
       onClick={handleCardClick}
     >
       {/* Thumbnail */}
@@ -129,31 +129,38 @@ export default function VideoCard({ video }: VideoCardProps) {
           </div>
         )}
       </div>
-      <CardContent className="p-4">
-        {/* Channel Info */}
-        <div className="flex items-center space-x-2 mb-3">
-          <div className="w-6 h-6 bg-gray-300 rounded-full flex-shrink-0 overflow-hidden">
-            {video.channel.thumbnailUrl ? (
-              <img
-                src={video.channel.thumbnailUrl}
-                alt={video.channel.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-300" />
-            )}
+      <CardContent className="p-4 flex-1 flex flex-col">
+        <div className="flex-1 space-y-3">
+          {/* Channel Info */}
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-gray-300 rounded-full flex-shrink-0 overflow-hidden">
+              {video.channel.thumbnailUrl ? (
+                <img
+                  src={video.channel.thumbnailUrl}
+                  alt={video.channel.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-300" />
+              )}
+            </div>
+            <span className="text-sm text-gray-600 font-medium">{video.channel.name}</span>
+            <span className="text-sm text-gray-400">{formatTimeAgo(video.publishedAt)}</span>
           </div>
-          <span className="text-sm text-gray-600 font-medium">{video.channel.name}</span>
-          <span className="text-sm text-gray-400">{formatTimeAgo(video.publishedAt)}</span>
+          
+          {/* Title */}
+          <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-tight">
+            {video.title}
+          </h3>
+          
+          {/* AI Summary */}
+          <p className="text-sm text-gray-600 leading-relaxed flex-1">
+            {video.aiSummary || "AI 요약이 생성 중입니다..."}
+          </p>
         </div>
         
-        {/* Title */}
-        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm leading-tight">
-          {video.title}
-        </h3>
-        
-        {/* Metadata */}
-        <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+        {/* Metadata - Fixed at bottom */}
+        <div className="flex items-center justify-between text-sm text-gray-500 mt-3 pt-3 border-t border-gray-100">
           <span>조회수 {video.viewCount?.toLocaleString() || 0}회</span>
           <Button
             variant="outline"
@@ -168,11 +175,6 @@ export default function VideoCard({ video }: VideoCardProps) {
             <span className="text-xs font-medium">{video.upvoteCount || 0}</span>
           </Button>
         </div>
-        
-        {/* AI Summary */}
-        <p className="text-sm text-gray-600 leading-relaxed">
-          {video.aiSummary || "AI 요약이 생성 중입니다..."}
-        </p>
       </CardContent>
     </Card>
   );
