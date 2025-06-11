@@ -10,18 +10,7 @@ if (fs.existsSync('dist')) {
 }
 fs.mkdirSync('dist', { recursive: true });
 
-// Build frontend with vite first
-console.log('Building frontend...');
-try {
-  execSync('vite build', {
-    stdio: 'inherit'
-  });
-} catch (error) {
-  console.error('Frontend build failed:', error.message);
-  process.exit(1);
-}
-
-// Build server with esbuild (fast and reliable)
+// Build server with esbuild (ensuring correct output file)
 console.log('Building server...');
 try {
   execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --alias:@shared=./shared', {
@@ -66,3 +55,13 @@ console.log('- dist/index.js (server bundle)');
 console.log('- dist/package.json (production dependencies)');
 console.log('- dist/shared/ (shared modules)');
 console.log('- dist/client/ (client source for development serving)');
+
+// Verify the dist/index.js file exists
+if (!fs.existsSync('dist/index.js')) {
+  console.error('ERROR: dist/index.js was not created!');
+  process.exit(1);
+} else {
+  console.log('✅ dist/index.js successfully created');
+  const stats = fs.statSync('dist/index.js');
+  console.log(`✅ File size: ${(stats.size / 1024).toFixed(1)}kb`);
+}
