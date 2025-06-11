@@ -74,19 +74,40 @@ export async function downloadVideoAudioSegments(videoId: string): Promise<{ seg
       const command = `yt-dlp -x --audio-format mp3 --audio-quality 5 --postprocessor-args "ffmpeg:-ss ${startTime} -t ${segmentDuration} -ar 16000" -o "${segmentPath.replace('.mp3', '.%(ext)s')}" "${videoUrl}"`;
       
       const segmentStartTime = Date.now();
-      await execAsync(command, { 
-        timeout: 300000, // 5 minute timeout per segment
-        maxBuffer: 1024 * 1024 * 50 // 50MB buffer
-      });
-      const segmentTime = Math.round((Date.now() - segmentStartTime) / 1000);
-      
-      if (fs.existsSync(segmentPath)) {
-        const stats = fs.statSync(segmentPath);
-        const fileSizeMB = stats.size / (1024 * 1024);
-        console.log(`Segment ${i + 1} downloaded: ${fileSizeMB.toFixed(2)}MB in ${segmentTime}s`);
-        segments.push(segmentPath);
-      } else {
-        console.warn(`Segment ${i + 1} was not created: ${segmentPath}`);
+      try {
+        await execAsync(command, { 
+          timeout: 300000, // 5 minute timeout per segment
+          maxBuffer: 1024 * 1024 * 50 // 50MB buffer
+        });
+        const segmentTime = Math.round((Date.now() - segmentStartTime) / 1000);
+        
+        if (fs.existsSync(segmentPath)) {
+          const stats = fs.statSync(segmentPath);
+          const fileSizeMB = stats.size / (1024 * 1024);
+          console.log(`Segment ${i + 1} downloaded: ${fileSizeMB.toFixed(2)}MB in ${segmentTime}s`);
+          segments.push(segmentPath);
+        } else {
+          console.warn(`Segment ${i + 1} was not created: ${segmentPath}`);
+        }
+      } catch (error) {
+        console.warn(`Failed to download segment ${i + 1}:`, error);
+        // Clean up any partial files immediately
+        try {
+          if (fs.existsSync(segmentPath)) {
+            fs.unlinkSync(segmentPath);
+          }
+          // Also clean up any .part files
+          const partFiles = fs.readdirSync(tempDir).filter(f => f.includes(videoId) && f.includes('.part'));
+          partFiles.forEach(partFile => {
+            const partPath = path.join(tempDir, partFile);
+            if (fs.existsSync(partPath)) {
+              fs.unlinkSync(partPath);
+              console.log(`Cleaned up partial file: ${partFile}`);
+            }
+          });
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
       }
     }
     
@@ -191,6 +212,10 @@ export async function downloadVideoAudio(videoId: string): Promise<AudioDownload
 export async function transcribeAudioWithWhisper(audioPath: string): Promise<string> {
   try {
     console.log(`Transcribing audio file: ${audioPath}`);
+    
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured');
+    }
     
     const audioFile = fs.createReadStream(audioPath);
     
