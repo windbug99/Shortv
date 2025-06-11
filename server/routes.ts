@@ -7,6 +7,15 @@ import { z } from "zod";
 import { initializeRSSCollector, updateChannelInfo, collectChannelVideos, collectAllChannelVideos } from "./rssCollector";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for Replit deployment
+  app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+  });
+
+  app.get('/', (req, res) => {
+    res.status(200).json({ status: 'Server running', timestamp: new Date().toISOString() });
+  });
+
   // Auth middleware
   await setupAuth(app);
 

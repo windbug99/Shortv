@@ -103,8 +103,8 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Replit autoscale deployment configuration
-    const port = parseInt(process.env.PORT || '3000');
+    // Replit deployment configuration - use port 8080 as default
+    const port = parseInt(process.env.PORT || '8080');
     const host = "0.0.0.0";
     
     console.log(`Starting server - Environment: ${process.env.NODE_ENV || 'development'}`);
