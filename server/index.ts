@@ -42,39 +42,47 @@ app.use((req, res, next) => {
   try {
     // Initialize basic services first
     console.log('Initializing core services...');
-    const { initializeTempFileCleanup } = await import('./tempFileCleanup.js');
-    initializeTempFileCleanup();
+    try {
+      const tempModule = await import('./tempFileCleanup.js');
+      tempModule.initializeTempFileCleanup();
+    } catch (error) {
+      console.warn('Temp file cleanup initialization failed, continuing without it:', error instanceof Error ? error.message : String(error));
+    }
     
     // Start server immediately, run other services in background
     console.log('Starting server routes...');
     const server = await registerRoutes(app);
     
-    // Initialize background services after server is ready
+    // Initialize background services after server is ready (non-blocking)
     setTimeout(async () => {
       try {
         console.log('Starting background database services...');
-        const { validateDatabaseIntegrity, cleanupOrphanedRecords } = await import('./dbCleanup.js');
-        const cron = await import('node-cron');
-        
-        const integrityCheck = await validateDatabaseIntegrity();
-        if (integrityCheck.orphanedVideos > 0 || integrityCheck.orphanedUpvotes > 0 || integrityCheck.orphanedSubscriptions > 0) {
-          console.log('데이터베이스 무결성 문제 발견, 자동 정리 시작...');
-          await cleanupOrphanedRecords();
-        }
-        
-        // Schedule daily integrity check at 3 AM
-        cron.default.schedule('0 3 * * *', async () => {
-          console.log('일일 데이터베이스 무결성 검사 시작...');
-          const dailyCheck = await validateDatabaseIntegrity();
-          if (dailyCheck.orphanedVideos > 0 || dailyCheck.orphanedUpvotes > 0 || dailyCheck.orphanedSubscriptions > 0) {
-            console.log(`고아 레코드 발견: 영상 ${dailyCheck.orphanedVideos}개, 업보트 ${dailyCheck.orphanedUpvotes}개, 구독 ${dailyCheck.orphanedSubscriptions}개`);
-            await cleanupOrphanedRecords();
+        try {
+          const dbModule = await import('./dbCleanup.js');
+          const cronModule = await import('node-cron');
+          
+          const integrityCheck = await dbModule.validateDatabaseIntegrity();
+          if (integrityCheck.orphanedVideos > 0 || integrityCheck.orphanedUpvotes > 0 || integrityCheck.orphanedSubscriptions > 0) {
+            console.log('데이터베이스 무결성 문제 발견, 자동 정리 시작...');
+            await dbModule.cleanupOrphanedRecords();
           }
-        });
-        
-        console.log('Background services initialized successfully');
+          
+          // Schedule daily integrity check at 3 AM
+          cronModule.default.schedule('0 3 * * *', async () => {
+            console.log('일일 데이터베이스 무결성 검사 시작...');
+            const dailyCheck = await dbModule.validateDatabaseIntegrity();
+            if (dailyCheck.orphanedVideos > 0 || dailyCheck.orphanedUpvotes > 0 || dailyCheck.orphanedSubscriptions > 0) {
+              console.log(`고아 레코드 발견: 영상 ${dailyCheck.orphanedVideos}개, 업보트 ${dailyCheck.orphanedUpvotes}개, 구독 ${dailyCheck.orphanedSubscriptions}개`);
+              await dbModule.cleanupOrphanedRecords();
+            }
+          });
+          
+          console.log('Background services initialized successfully');
+        } catch (moduleError) {
+          console.warn('Background service modules not available in bundled environment, skipping:', moduleError instanceof Error ? moduleError.message : String(moduleError));
+        }
       } catch (error) {
-        console.error('Background service initialization failed:', error);
+        console.warn('Background service initialization failed, continuing without:', error instanceof Error ? error.message : String(error));
       }
     }, 3000);
 
