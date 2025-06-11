@@ -103,18 +103,12 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Environment-specific port configuration
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const defaultPort = isDevelopment ? '5000' : '8080';
-    const port = parseInt(process.env.PORT || defaultPort);
+    // Use port 5000 for both development and production (matches .replit configuration)
+    const port = parseInt(process.env.PORT || '5000');
     const host = "0.0.0.0";
     
     console.log(`Starting server - Environment: ${process.env.NODE_ENV || 'development'}`);
-    if (isDevelopment) {
-      console.log(`Development server - binding to ${host}:${port}`);
-    } else {
-      console.log(`Production deployment - binding to ${host}:${port}`);
-    }
+    console.log(`Server binding to ${host}:${port}`);
     
     // Enhanced error handling for deployment debugging
     server.on('error', (err: any) => {
