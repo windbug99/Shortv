@@ -33,81 +33,13 @@ export async function generateAISummary(
 
       // Try to extract video transcript for better analysis
       let transcript = null;
-      let transcriptSource = "none"; // 'youtube', 'whisper', 'none'
-
       if (videoId) {
-        // Check for YouTube transcript first
-        try {
-          const { YoutubeTranscript } = await import("youtube-transcript");
-
-          // Try Korean first
-          try {
-            const koreanTranscript = await YoutubeTranscript.fetchTranscript(
-              videoId,
-              { lang: "ko" },
-            );
-            if (koreanTranscript && koreanTranscript.length > 0) {
-              transcript = koreanTranscript
-                .map((item: any) => item.text)
-                .join(" ");
-              transcriptSource = "youtube";
-            }
-          } catch (koreanError) {
-            // Try English
-            try {
-              const englishTranscript = await YoutubeTranscript.fetchTranscript(
-                videoId,
-                { lang: "en" },
-              );
-              if (englishTranscript && englishTranscript.length > 0) {
-                transcript = englishTranscript
-                  .map((item: any) => item.text)
-                  .join(" ");
-                transcriptSource = "youtube";
-              }
-            } catch (englishError) {
-              // Try default
-              try {
-                const defaultTranscript =
-                  await YoutubeTranscript.fetchTranscript(videoId);
-                if (defaultTranscript && defaultTranscript.length > 0) {
-                  transcript = defaultTranscript
-                    .map((item: any) => item.text)
-                    .join(" ");
-                  transcriptSource = "youtube";
-                }
-              } catch (defaultError) {
-                // YouTube transcript failed, try Whisper
-                console.log(
-                  `YouTube transcript failed for ${videoId}, trying audio transcription...`,
-                );
-                try {
-                  const { extractTranscriptWithWhisper } = await import(
-                    "./audioTranscriptor.js"
-                  );
-                  const whisperTranscript =
-                    await extractTranscriptWithWhisper(videoId);
-                  if (whisperTranscript && whisperTranscript.length > 50) {
-                    transcript = whisperTranscript;
-                    transcriptSource = "whisper";
-                  }
-                } catch (whisperError) {
-                  console.log(`Audio transcription also failed for ${videoId}`);
-                }
-              }
-            }
-          }
-        } catch (importError) {
-          console.log(
-            `Transcript extraction failed for ${videoId}:`,
-            importError,
-          );
-        }
-
+        // Method 1: Try regular transcript extraction first
+        transcript = await extractVideoTranscript(videoId);
         if (transcript) {
           transcript = preprocessTranscript(transcript);
           console.log(
-            `Using ${transcriptSource} transcript for ${videoId}: ${transcript.length} characters`,
+            `Using regular transcript for ${videoId}: ${transcript.length} characters`,
           );
         } else {
           console.log(
@@ -123,13 +55,6 @@ export async function generateAISummary(
           ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}`
           : "";
 
-        // Only show warning message when both transcript and audio extraction failed
-        let warningMessage = "";
-        
-        if (transcriptSource === "none") {
-          warningMessage = "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
-        }
-
         prompt = `
 다음과 같이 요약해주세요:
 
@@ -137,14 +62,16 @@ export async function generateAISummary(
 설명: ${description}${transcriptText}
 
 형식:
-${warningMessage ? `첫 줄: "${warningMessage}"` : ""}${warningMessage ? `둘째 줄부터: ` : "첫 줄부터: "}88자 이상 98자 이하 요약 내용
+첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
+둘째 줄부터: 88자 이상 98자 이하 요약 내용
 
 중요한 제약사항:
+- 첫 줄에 반드시 스크립트 상태 명시
 - 요약은 88자 이상 98자 이하 (공백 포함)
-- ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
+- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
 - 문어체 사용
-- ${transcript ? "제공된 콘텐츠에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
+- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 `;
       } else {
         const transcriptChunks = transcript
@@ -166,21 +93,6 @@ ${warningMessage ? `첫 줄: "${warningMessage}"` : ""}${warningMessage ? `둘�
           ? "스크립트에서 언급된 구체적인 내용과 주요 포인트를 포함할 것"
           : "";
 
-        // Determine status display and warning message for detailed summary
-        let statusDisplay = "";
-        let warningMessage = "";
-
-        if (transcriptSource === "youtube") {
-          statusDisplay = "스크립트있음";
-        } else if (transcriptSource === "whisper") {
-          statusDisplay = "음성있음";
-        } else {
-          // Only show warning message when both transcript and audio extraction failed
-          statusDisplay = "스크립트없음 음성없음";
-          warningMessage =
-            "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
-        }
-
         prompt = `
 다음과 같이 요약해주세요:
 
@@ -188,7 +100,7 @@ ${warningMessage ? `첫 줄: "${warningMessage}"` : ""}${warningMessage ? `둘�
 설명: ${description}${transcriptSection}
 
 형식:
-첫 줄: "${warningMessage}${statusDisplay}"
+첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
 
 # 핵심정리
 
@@ -202,13 +114,12 @@ ${warningMessage ? `첫 줄: "${warningMessage}"` : ""}${warningMessage ? `둘�
 - 전체적인 결론
 
 중요한 제약사항:
-- 첫 줄에 ${warningMessage ? "경고 메시지와 " : ""}콘텐츠 상태 명시
-- ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
+- 첫 줄에 반드시 스크립트 상태 명시
+- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
-- 시간의 흐름 순서대로 요약
-- ${transcript ? "제공된 콘텐츠에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
-- 영상을 이해할 수 있도록 스크립트 내용에 기반해서 작성
-- 전체 요약 길이 제한: 1800자 이내
+- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
+- 구체적이고 실용적인 내용 포함
+- 전체 요약 길이: 300-500자
 
 출력 형식 (반드시 준수):
 # 핵심정리

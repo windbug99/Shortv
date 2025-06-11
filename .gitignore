@@ -4,18 +4,3 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
-
-# Video files - exclude from deployment
-*.mp4
-*.webm
-*.avi
-*.mov
-*.mkv
-*.wmv
-*.flv
-*.m4v
-
-# Temporary files
-temp/
-*.tmp
-*.temp
