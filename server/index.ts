@@ -37,6 +37,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize temporary file cleanup service
+  const { initializeTempFileCleanup } = await import('./tempFileCleanup.js');
+  initializeTempFileCleanup();
+  
   // Database integrity check and cleanup on startup
   const { validateDatabaseIntegrity, cleanupOrphanedRecords } = await import('./dbCleanup.js');
   const cron = await import('node-cron');
