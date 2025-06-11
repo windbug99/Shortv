@@ -103,12 +103,18 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Replit deployment configuration - use port 8080 as default
-    const port = parseInt(process.env.PORT || '8080');
+    // Environment-specific port configuration
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const defaultPort = isDevelopment ? '5000' : '8080';
+    const port = parseInt(process.env.PORT || defaultPort);
     const host = "0.0.0.0";
     
     console.log(`Starting server - Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Replit deployment - binding to ${host}:${port}`);
+    if (isDevelopment) {
+      console.log(`Development server - binding to ${host}:${port}`);
+    } else {
+      console.log(`Production deployment - binding to ${host}:${port}`);
+    }
     
     // Enhanced error handling for deployment debugging
     server.on('error', (err: any) => {
