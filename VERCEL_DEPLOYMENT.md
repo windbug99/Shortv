@@ -1,21 +1,30 @@
-# Vercel 배포 가이드
+# Vercel 배포 완전 가이드
 
 ## 1. GitHub Repository 준비
 
-### 필수 파일들
+### 필수 파일들 (모두 생성 완료)
 ```
 프로젝트 루트/
-├── vercel.json           # Vercel 설정 파일
-├── package.json          # 의존성 및 빌드 스크립트
-├── server/              # 백엔드 코드
-├── client/              # 프론트엔드 코드
-├── shared/              # 공유 스키마
-└── .env.example         # 환경변수 예시
+├── vercel.json           # ✅ Vercel 설정 파일
+├── package.json          # ✅ 의존성 및 빌드 스크립트
+├── api/index.ts          # ✅ Vercel 서버리스 함수
+├── server/               # 백엔드 코드
+├── client/               # 프론트엔드 코드
+├── shared/               # 공유 스키마
+└── .env.example          # ✅ 환경변수 예시
 ```
 
-### GitHub에 푸시할 브랜치
-- `main` 또는 `master` 브랜치 사용 권장
-- 모든 파일이 커밋되어 있는지 확인
+### GitHub Repository 생성 단계
+1. GitHub에서 새 Repository 생성
+2. 로컬에서 Git 초기화:
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/username/repository-name.git
+git push -u origin main
+```
 
 ## 2. Vercel 프로젝트 설정
 
