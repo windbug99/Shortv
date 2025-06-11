@@ -26,20 +26,27 @@ async function testCompleteOAuth() {
     return;
   }
   
-  // Test transcript extraction
-  const testVideoId = 'dQw4w9WgXcQ'; // Rick Astley - Never Gonna Give You Up
-  console.log(`\n📝 스크립트 추출 테스트: ${testVideoId}`);
+  // Test transcript extraction with multiple videos
+  const testVideos = [
+    { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up' },
+    { id: 'jNQXAC9IVRw', title: 'Me at the zoo' },
+    { id: 'DhnVAQRI7w0', title: '샤오미 최초 모바일 자체칩 Xring O1 공개' }
+  ];
   
-  try {
-    const transcript = await extractTranscriptWithYouTubeAPI(testVideoId);
-    if (transcript) {
-      console.log(`✅ 스크립트 추출 성공: ${transcript.length} 문자`);
-      console.log(`미리보기: ${transcript.substring(0, 100)}...`);
-    } else {
-      console.log('⚠️  스크립트가 비어있습니다.');
+  for (const video of testVideos) {
+    console.log(`\n📝 스크립트 추출 테스트: ${video.title} (${video.id})`);
+    
+    try {
+      const transcript = await extractTranscriptWithYouTubeAPI(video.id);
+      if (transcript) {
+        console.log(`✅ 스크립트 추출 성공: ${transcript.length} 문자`);
+        console.log(`미리보기: ${transcript.substring(0, 100)}...`);
+      } else {
+        console.log('⚠️  스크립트가 비어있습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 스크립트 추출 실패:', error instanceof Error ? error.message : String(error));
     }
-  } catch (error) {
-    console.error('❌ 스크립트 추출 실패:', error instanceof Error ? error.message : String(error));
   }
   
   console.log('\n=== 테스트 완료 ===');
