@@ -24,8 +24,8 @@ async function getRefreshToken() {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: clientId!,
+        client_secret: clientSecret!,
         code: authCode,
         grant_type: 'authorization_code',
         redirect_uri: 'http://localhost:8080',
