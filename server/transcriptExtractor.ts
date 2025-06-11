@@ -1,4 +1,5 @@
 import { YoutubeTranscript } from 'youtube-transcript';
+import { extractTranscriptWithWhisper } from './audioTranscriptor.js';
 
 interface TranscriptItem {
   text: string;
@@ -82,7 +83,18 @@ export async function extractVideoTranscript(videoId: string): Promise<string | 
         return preprocessTranscript(cleanText);
       }
     } catch (defaultError) {
-      console.log(`Default transcript extraction also failed for ${videoId}`);
+      console.log(`Default transcript extraction also failed for ${videoId}, trying Whisper audio transcription...`);
+      
+      // If all YouTube transcript methods fail, try Whisper audio transcription
+      try {
+        const whisperTranscript = await extractTranscriptWithWhisper(videoId);
+        if (whisperTranscript && whisperTranscript.trim().length > 50) {
+          console.log(`Successfully extracted transcript with Whisper for ${videoId}: ${whisperTranscript.length} characters`);
+          return preprocessTranscript(whisperTranscript);
+        }
+      } catch (whisperError) {
+        console.log(`Whisper audio transcription also failed for ${videoId}:`, whisperError);
+      }
     }
     
     console.log(`No transcript available for video: ${videoId}`);
