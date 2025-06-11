@@ -1,4 +1,5 @@
 import { YoutubeTranscript } from 'youtube-transcript';
+import { extractTranscriptWithYouTubeAPI } from './youtubeApiTranscript.js';
 
 interface TranscriptItem {
   text: string;
@@ -9,6 +10,17 @@ interface TranscriptItem {
 export async function extractVideoTranscript(videoId: string): Promise<string | null> {
   try {
     console.log(`Extracting transcript for video: ${videoId}`);
+    
+    // First try YouTube Data API v3 with OAuth
+    try {
+      const apiTranscript = await extractTranscriptWithYouTubeAPI(videoId);
+      if (apiTranscript && apiTranscript.trim().length > 0) {
+        console.log(`Successfully extracted transcript via YouTube API for ${videoId}`);
+        return preprocessTranscript(apiTranscript);
+      }
+    } catch (apiError) {
+      console.log(`YouTube API extraction failed for ${videoId}, falling back to youtube-transcript...`);
+    }
     
     // Try Korean transcript first
     try {
