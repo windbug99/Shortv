@@ -134,7 +134,9 @@ app.use((req, res, next) => {
 
   } catch (error) {
     console.error('❌ Critical server initialization error:', error);
-    console.error('Stack trace:', error.stack);
+    if (error instanceof Error) {
+      console.error('Stack trace:', error.stack);
+    }
     process.exit(1);
   }
 })();
