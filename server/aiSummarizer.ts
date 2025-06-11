@@ -33,13 +33,60 @@ export async function generateAISummary(
 
       // Try to extract video transcript for better analysis
       let transcript = null;
+      let transcriptSource = 'none'; // 'youtube', 'whisper', 'none'
+      
       if (videoId) {
-        // Method 1: Try regular transcript extraction first
-        transcript = await extractVideoTranscript(videoId);
+        // Check for YouTube transcript first
+        try {
+          const { YoutubeTranscript } = await import('youtube-transcript');
+          
+          // Try Korean first
+          try {
+            const koreanTranscript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'ko' });
+            if (koreanTranscript && koreanTranscript.length > 0) {
+              transcript = koreanTranscript.map((item: any) => item.text).join(' ');
+              transcriptSource = 'youtube';
+            }
+          } catch (koreanError) {
+            // Try English
+            try {
+              const englishTranscript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
+              if (englishTranscript && englishTranscript.length > 0) {
+                transcript = englishTranscript.map((item: any) => item.text).join(' ');
+                transcriptSource = 'youtube';
+              }
+            } catch (englishError) {
+              // Try default
+              try {
+                const defaultTranscript = await YoutubeTranscript.fetchTranscript(videoId);
+                if (defaultTranscript && defaultTranscript.length > 0) {
+                  transcript = defaultTranscript.map((item: any) => item.text).join(' ');
+                  transcriptSource = 'youtube';
+                }
+              } catch (defaultError) {
+                // YouTube transcript failed, try Whisper
+                console.log(`YouTube transcript failed for ${videoId}, trying audio transcription...`);
+                try {
+                  const { extractTranscriptWithWhisper } = await import('./audioTranscriptor.js');
+                  const whisperTranscript = await extractTranscriptWithWhisper(videoId);
+                  if (whisperTranscript && whisperTranscript.length > 50) {
+                    transcript = whisperTranscript;
+                    transcriptSource = 'whisper';
+                  }
+                } catch (whisperError) {
+                  console.log(`Audio transcription also failed for ${videoId}`);
+                }
+              }
+            }
+          }
+        } catch (importError) {
+          console.log(`Transcript extraction failed for ${videoId}:`, importError);
+        }
+        
         if (transcript) {
           transcript = preprocessTranscript(transcript);
           console.log(
-            `Using regular transcript for ${videoId}: ${transcript.length} characters`,
+            `Using ${transcriptSource} transcript for ${videoId}: ${transcript.length} characters`,
           );
         } else {
           console.log(
@@ -55,6 +102,16 @@ export async function generateAISummary(
           ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}`
           : "";
 
+        // Determine status display
+        let statusDisplay = "";
+        if (transcriptSource === 'youtube') {
+          statusDisplay = "스크립트있음";
+        } else if (transcriptSource === 'whisper') {
+          statusDisplay = "음성있음";
+        } else {
+          statusDisplay = "스크립트없음";
+        }
+
         prompt = `
 다음과 같이 요약해주세요:
 
@@ -62,16 +119,16 @@ export async function generateAISummary(
 설명: ${description}${transcriptText}
 
 형식:
-첫 줄: "${transcript ? "음성있음" : "음성없음"}"
+첫 줄: "${statusDisplay}"
 둘째 줄부터: 88자 이상 98자 이하 요약 내용
 
 중요한 제약사항:
-- 첫 줄에 반드시 음성 상태 명시 (음성있음/음성없음)
+- 첫 줄에 반드시 콘텐츠 상태 명시 (스크립트있음/음성있음/스크립트없음)
 - 요약은 88자 이상 98자 이하 (공백 포함)
-- ${transcript ? "실제 음성 내용만" : "제목과 설명의 내용만"} 사용
+- ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
 - 문어체 사용
-- ${transcript ? "음성에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
+- ${transcript ? "제공된 콘텐츠에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 `;
       } else {
         const transcriptChunks = transcript
@@ -93,6 +150,16 @@ export async function generateAISummary(
           ? "스크립트에서 언급된 구체적인 내용과 주요 포인트를 포함할 것"
           : "";
 
+        // Determine status display for detailed summary
+        let statusDisplay = "";
+        if (transcriptSource === 'youtube') {
+          statusDisplay = "스크립트있음";
+        } else if (transcriptSource === 'whisper') {
+          statusDisplay = "음성있음";
+        } else {
+          statusDisplay = "스크립트없음";
+        }
+
         prompt = `
 다음과 같이 요약해주세요:
 
@@ -100,7 +167,7 @@ export async function generateAISummary(
 설명: ${description}${transcriptSection}
 
 형식:
-첫 줄: "${transcript ? "음성있음" : "음성없음"}"
+첫 줄: "${statusDisplay}"
 
 # 핵심정리
 
@@ -114,10 +181,10 @@ export async function generateAISummary(
 - 전체적인 결론
 
 중요한 제약사항:
-- 첫 줄에 반드시 음성 상태 명시 (음성있음/음성없음)
-- ${transcript ? "실제 음성 내용만" : "제목과 설명의 내용만"} 사용
+- 첫 줄에 반드시 콘텐츠 상태 명시 (스크립트있음/음성있음/스크립트없음)
+- ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
-- ${transcript ? "음성에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
+- ${transcript ? "제공된 콘텐츠에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 - 구체적이고 실용적인 내용 포함
 - 전체 요약 길이: 300-500자
 
