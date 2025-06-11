@@ -103,7 +103,7 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Use port 5000 for both development and production (matches .replit configuration)
+    // Use PORT environment variable for deployment, fallback to 5000 for development
     const port = parseInt(process.env.PORT || '5000');
     const host = "0.0.0.0";
     
