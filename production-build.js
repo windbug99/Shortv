@@ -11,8 +11,8 @@ if (fs.existsSync('dist')) {
 }
 fs.mkdirSync('dist', { recursive: true });
 
-// Build server bundle with deployment optimizations
-console.log('📦 Building server bundle...');
+// Build server bundle optimized for autoscale deployment
+console.log('📦 Building server bundle for autoscale...');
 try {
   execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --alias:@shared=./shared --define:process.env.NODE_ENV=\\"production\\"', {
     stdio: 'inherit'
