@@ -10,6 +10,7 @@ if (fs.existsSync('dist')) {
 }
 fs.mkdirSync('dist', { recursive: true });
 
+// Skip vite build for now to avoid timeout issues in deployment
 // Build server with esbuild (ensuring correct output file)
 console.log('Building server...');
 try {
