@@ -109,7 +109,7 @@ export async function generateAISummary(
         } else if (transcriptSource === 'whisper') {
           statusDisplay = "음성있음";
         } else {
-          statusDisplay = "스크립트없음";
+          statusDisplay = "스크립트없음 음성없음";
         }
 
         prompt = `
@@ -123,7 +123,7 @@ export async function generateAISummary(
 둘째 줄부터: 88자 이상 98자 이하 요약 내용
 
 중요한 제약사항:
-- 첫 줄에 반드시 콘텐츠 상태 명시 (스크립트있음/음성있음/스크립트없음)
+- 첫 줄에 반드시 콘텐츠 상태 명시 (스크립트있음/음성있음/스크립트없음 음성없음)
 - 요약은 88자 이상 98자 이하 (공백 포함)
 - ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
@@ -157,7 +157,7 @@ export async function generateAISummary(
         } else if (transcriptSource === 'whisper') {
           statusDisplay = "음성있음";
         } else {
-          statusDisplay = "스크립트없음";
+          statusDisplay = "스크립트없음 음성없음";
         }
 
         prompt = `
