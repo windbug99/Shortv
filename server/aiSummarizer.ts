@@ -41,7 +41,6 @@ export async function generateAISummary(
           const { YoutubeTranscript } = await import("youtube-transcript");
 
           // Try Korean first
-          let youtubeTranscriptFound = false;
           try {
             const koreanTranscript = await YoutubeTranscript.fetchTranscript(
               videoId,
@@ -52,14 +51,9 @@ export async function generateAISummary(
                 .map((item: any) => item.text)
                 .join(" ");
               transcriptSource = "youtube";
-              youtubeTranscriptFound = true;
             }
           } catch (koreanError) {
-            // Korean failed, continue to English
-          }
-
-          // Try English if Korean didn't work
-          if (!youtubeTranscriptFound) {
+            // Try English
             try {
               const englishTranscript = await YoutubeTranscript.fetchTranscript(
                 videoId,
@@ -70,50 +64,37 @@ export async function generateAISummary(
                   .map((item: any) => item.text)
                   .join(" ");
                 transcriptSource = "youtube";
-                youtubeTranscriptFound = true;
               }
             } catch (englishError) {
-              // English failed, continue to default
-            }
-          }
-
-          // Try default if English didn't work
-          if (!youtubeTranscriptFound) {
-            try {
-              const defaultTranscript =
-                await YoutubeTranscript.fetchTranscript(videoId);
-              if (defaultTranscript && defaultTranscript.length > 0) {
-                transcript = defaultTranscript
-                  .map((item: any) => item.text)
-                  .join(" ");
-                transcriptSource = "youtube";
-                youtubeTranscriptFound = true;
+              // Try default
+              try {
+                const defaultTranscript =
+                  await YoutubeTranscript.fetchTranscript(videoId);
+                if (defaultTranscript && defaultTranscript.length > 0) {
+                  transcript = defaultTranscript
+                    .map((item: any) => item.text)
+                    .join(" ");
+                  transcriptSource = "youtube";
+                }
+              } catch (defaultError) {
+                // YouTube transcript failed, try Whisper
+                console.log(
+                  `YouTube transcript failed for ${videoId}, trying audio transcription...`,
+                );
+                try {
+                  const { extractTranscriptWithWhisper } = await import(
+                    "./audioTranscriptor.js"
+                  );
+                  const whisperTranscript =
+                    await extractTranscriptWithWhisper(videoId);
+                  if (whisperTranscript && whisperTranscript.length > 50) {
+                    transcript = whisperTranscript;
+                    transcriptSource = "whisper";
+                  }
+                } catch (whisperError) {
+                  console.log(`Audio transcription also failed for ${videoId}`);
+                }
               }
-            } catch (defaultError) {
-              // Default failed
-            }
-          }
-
-          // If no YouTube transcript found (empty or error), try Whisper
-          if (!youtubeTranscriptFound) {
-            console.log(
-              `No YouTube transcript available for ${videoId}, trying audio transcription...`,
-            );
-            try {
-              const { extractTranscriptWithWhisper } = await import(
-                "./audioTranscriptor.js"
-              );
-              const whisperTranscript =
-                await extractTranscriptWithWhisper(videoId);
-              if (whisperTranscript && whisperTranscript.length > 50) {
-                transcript = whisperTranscript;
-                transcriptSource = "whisper";
-                console.log(`Whisper audio transcription successful for ${videoId}: ${whisperTranscript.length} characters`);
-              } else {
-                console.log(`Whisper transcription failed or too short for ${videoId}`);
-              }
-            } catch (whisperError) {
-              console.log(`Audio transcription failed for ${videoId}:`, whisperError);
             }
           }
         } catch (importError) {
@@ -142,19 +123,11 @@ export async function generateAISummary(
           ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}`
           : "";
 
-        // Determine status display and warning message
-        let statusDisplay = "";
+        // Only show warning message when both transcript and audio extraction failed
         let warningMessage = "";
-
-        if (transcriptSource === "youtube") {
-          statusDisplay = "스크립트있음";
-        } else if (transcriptSource === "whisper") {
-          statusDisplay = "음성있음";
-        } else {
-          // Only show warning message when both transcript and audio extraction failed
-          statusDisplay = "스크립트없음 음성없음";
-          warningMessage =
-            "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
+        
+        if (transcriptSource === "none") {
+          warningMessage = "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
         }
 
         prompt = `
@@ -164,11 +137,9 @@ export async function generateAISummary(
 설명: ${description}${transcriptText}
 
 형식:
-첫 줄: "${warningMessage}${statusDisplay}"
-둘째 줄부터: 88자 이상 98자 이하 요약 내용
+${warningMessage ? `첫 줄: "${warningMessage}"` : ""}${warningMessage ? `둘째 줄부터: ` : "첫 줄부터: "}88자 이상 98자 이하 요약 내용
 
 중요한 제약사항:
-- 첫 줄에 ${warningMessage ? "경고 메시지와 " : ""}콘텐츠 상태 명시
 - 요약은 88자 이상 98자 이하 (공백 포함)
 - ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
