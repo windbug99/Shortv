@@ -16,6 +16,119 @@ interface AudioDownloadResult {
   cleanup: () => void;
 }
 
+async function getVideoDuration(videoId: string): Promise<number> {
+  try {
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const command = `yt-dlp --get-duration "${videoUrl}"`;
+    
+    const { stdout } = await execAsync(command, { timeout: 30000 });
+    const durationStr = stdout.trim();
+    
+    // Parse duration (format: HH:MM:SS or MM:SS)
+    const parts = durationStr.split(':').map(Number);
+    let seconds = 0;
+    
+    if (parts.length === 3) {
+      seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+      seconds = parts[0] * 60 + parts[1];
+    } else if (parts.length === 1) {
+      seconds = parts[0];
+    }
+    
+    console.log(`Video duration: ${durationStr} (${seconds} seconds)`);
+    return seconds;
+  } catch (error) {
+    console.warn('Failed to get video duration, defaulting to 300 seconds:', error);
+    return 300; // Default to 5 minutes
+  }
+}
+
+export async function downloadVideoAudioSegments(videoId: string): Promise<{ segments: string[], cleanup: () => void }> {
+  const tempDir = path.join(process.cwd(), 'temp');
+  
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+  
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  console.log(`Getting video duration for: ${videoId}`);
+  
+  const totalDuration = await getVideoDuration(videoId);
+  const segmentDuration = 300; // 5 minutes per segment
+  const numSegments = Math.ceil(totalDuration / segmentDuration);
+  
+  console.log(`Video duration: ${totalDuration}s, will create ${numSegments} segments`);
+  
+  const segments: string[] = [];
+  const segmentPaths: string[] = [];
+  
+  try {
+    for (let i = 0; i < numSegments; i++) {
+      const startTime = i * segmentDuration;
+      const segmentPath = path.join(tempDir, `${videoId}_segment_${i}.mp3`);
+      segmentPaths.push(segmentPath);
+      
+      console.log(`Downloading segment ${i + 1}/${numSegments} (${startTime}s-${startTime + segmentDuration}s)`);
+      
+      const command = `yt-dlp -x --audio-format mp3 --audio-quality 5 --postprocessor-args "ffmpeg:-ss ${startTime} -t ${segmentDuration} -ar 16000" -o "${segmentPath.replace('.mp3', '.%(ext)s')}" "${videoUrl}"`;
+      
+      const segmentStartTime = Date.now();
+      await execAsync(command, { 
+        timeout: 300000, // 5 minute timeout per segment
+        maxBuffer: 1024 * 1024 * 50 // 50MB buffer
+      });
+      const segmentTime = Math.round((Date.now() - segmentStartTime) / 1000);
+      
+      if (fs.existsSync(segmentPath)) {
+        const stats = fs.statSync(segmentPath);
+        const fileSizeMB = stats.size / (1024 * 1024);
+        console.log(`Segment ${i + 1} downloaded: ${fileSizeMB.toFixed(2)}MB in ${segmentTime}s`);
+        segments.push(segmentPath);
+      } else {
+        console.warn(`Segment ${i + 1} was not created: ${segmentPath}`);
+      }
+    }
+    
+    if (segments.length === 0) {
+      throw new Error('No audio segments were successfully downloaded');
+    }
+    
+    console.log(`Successfully downloaded ${segments.length}/${numSegments} segments`);
+    
+    return {
+      segments,
+      cleanup: () => {
+        segmentPaths.forEach(segmentPath => {
+          try {
+            if (fs.existsSync(segmentPath)) {
+              fs.unlinkSync(segmentPath);
+              console.log(`Cleaned up segment: ${segmentPath}`);
+            }
+          } catch (error) {
+            console.warn(`Failed to clean up segment: ${segmentPath}`, error);
+          }
+        });
+      }
+    };
+    
+  } catch (error) {
+    // Cleanup on error
+    segmentPaths.forEach(segmentPath => {
+      try {
+        if (fs.existsSync(segmentPath)) {
+          fs.unlinkSync(segmentPath);
+        }
+      } catch (cleanupError) {
+        // Ignore cleanup errors
+      }
+    });
+    
+    console.error(`Failed to download audio segments for ${videoId}:`, error);
+    throw error;
+  }
+}
+
 export async function downloadVideoAudio(videoId: string): Promise<AudioDownloadResult> {
   const tempDir = path.join(process.cwd(), 'temp');
   
@@ -116,28 +229,77 @@ export async function transcribeAudioWithWhisper(audioPath: string): Promise<str
 }
 
 export async function extractTranscriptWithWhisper(videoId: string): Promise<string | null> {
-  let audioDownload: AudioDownloadResult | null = null;
+  let segmentDownload: { segments: string[], cleanup: () => void } | null = null;
   
   try {
-    console.log(`Starting Whisper transcription for video: ${videoId}`);
+    console.log(`Starting segmented Whisper transcription for video: ${videoId}`);
+    const totalStartTime = Date.now();
     
-    audioDownload = await downloadVideoAudio(videoId);
-    const transcript = await transcribeAudioWithWhisper(audioDownload.audioPath);
+    // Step 1: Download audio segments
+    console.log(`Step 1: Downloading audio segments...`);
+    const downloadStartTime = Date.now();
+    segmentDownload = await downloadVideoAudioSegments(videoId);
+    const downloadTime = Math.round((Date.now() - downloadStartTime) / 1000);
+    console.log(`Step 1 completed: ${segmentDownload.segments.length} segments downloaded in ${downloadTime}s`);
     
-    if (!transcript || transcript.length < 50) {
-      console.log(`Transcript too short for ${videoId}: ${transcript?.length || 0} characters`);
+    // Step 2: Transcribe each segment
+    console.log(`Step 2: Transcribing ${segmentDownload.segments.length} segments...`);
+    const transcriptionStartTime = Date.now();
+    const transcripts: string[] = [];
+    
+    for (let i = 0; i < segmentDownload.segments.length; i++) {
+      const segmentPath = segmentDownload.segments[i];
+      console.log(`Transcribing segment ${i + 1}/${segmentDownload.segments.length}...`);
+      
+      const segmentTranscriptStartTime = Date.now();
+      try {
+        const segmentTranscript = await transcribeAudioWithWhisper(segmentPath);
+        const segmentTranscriptTime = Math.round((Date.now() - segmentTranscriptStartTime) / 1000);
+        
+        if (segmentTranscript && segmentTranscript.trim().length > 10) {
+          transcripts.push(segmentTranscript.trim());
+          console.log(`Segment ${i + 1} transcribed: ${segmentTranscript.length} chars in ${segmentTranscriptTime}s`);
+        } else {
+          console.log(`Segment ${i + 1} produced empty/short transcript in ${segmentTranscriptTime}s`);
+        }
+      } catch (segmentError) {
+        console.warn(`Failed to transcribe segment ${i + 1}:`, segmentError);
+      }
+    }
+    
+    const transcriptionTime = Math.round((Date.now() - transcriptionStartTime) / 1000);
+    console.log(`Step 2 completed: ${transcripts.length}/${segmentDownload.segments.length} segments transcribed in ${transcriptionTime}s`);
+    
+    // Step 3: Merge transcripts
+    console.log(`Step 3: Merging transcripts...`);
+    const mergeStartTime = Date.now();
+    
+    if (transcripts.length === 0) {
+      console.log(`No transcripts to merge for ${videoId}`);
       return null;
     }
     
-    console.log(`Successfully transcribed ${videoId} with Whisper: ${transcript.length} characters`);
-    return transcript;
+    const fullTranscript = transcripts.join(' ').trim();
+    const mergeTime = Math.round((Date.now() - mergeStartTime) / 1000);
+    const totalTime = Math.round((Date.now() - totalStartTime) / 1000);
+    
+    console.log(`Step 3 completed: Merged transcript has ${fullTranscript.length} characters in ${mergeTime}s`);
+    console.log(`Total process time: ${totalTime}s (Download: ${downloadTime}s, Transcription: ${transcriptionTime}s, Merge: ${mergeTime}s)`);
+    
+    if (fullTranscript.length < 50) {
+      console.log(`Final transcript too short for ${videoId}: ${fullTranscript.length} characters`);
+      return null;
+    }
+    
+    console.log(`Successfully transcribed ${videoId} with segmented Whisper: ${fullTranscript.length} characters`);
+    return fullTranscript;
     
   } catch (error) {
-    console.error(`Whisper transcription failed for ${videoId}:`, error);
+    console.error(`Segmented Whisper transcription failed for ${videoId}:`, error);
     return null;
   } finally {
-    if (audioDownload) {
-      audioDownload.cleanup();
+    if (segmentDownload) {
+      segmentDownload.cleanup();
     }
   }
 }
