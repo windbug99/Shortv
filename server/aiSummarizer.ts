@@ -102,14 +102,17 @@ export async function generateAISummary(
           ? `\n스크립트: ${transcript.substring(0, 4000)}${transcript.length > 4000 ? "..." : ""}`
           : "";
 
-        // Determine status display
+        // Determine status display and warning message
         let statusDisplay = "";
+        let warningMessage = "";
+        
         if (transcriptSource === 'youtube') {
           statusDisplay = "스크립트있음";
         } else if (transcriptSource === 'whisper') {
           statusDisplay = "음성있음";
         } else {
           statusDisplay = "스크립트없음 음성없음";
+          warningMessage = "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
         }
 
         prompt = `
@@ -119,11 +122,11 @@ export async function generateAISummary(
 설명: ${description}${transcriptText}
 
 형식:
-첫 줄: "${statusDisplay}"
+첫 줄: "${warningMessage}${statusDisplay}"
 둘째 줄부터: 88자 이상 98자 이하 요약 내용
 
 중요한 제약사항:
-- 첫 줄에 반드시 콘텐츠 상태 명시 (스크립트있음/음성있음/스크립트없음 음성없음)
+- 첫 줄에 ${warningMessage ? "경고 메시지와 " : ""}콘텐츠 상태 명시
 - 요약은 88자 이상 98자 이하 (공백 포함)
 - ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
@@ -150,14 +153,17 @@ export async function generateAISummary(
           ? "스크립트에서 언급된 구체적인 내용과 주요 포인트를 포함할 것"
           : "";
 
-        // Determine status display for detailed summary
+        // Determine status display and warning message for detailed summary
         let statusDisplay = "";
+        let warningMessage = "";
+        
         if (transcriptSource === 'youtube') {
           statusDisplay = "스크립트있음";
         } else if (transcriptSource === 'whisper') {
           statusDisplay = "음성있음";
         } else {
           statusDisplay = "스크립트없음 음성없음";
+          warningMessage = "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
         }
 
         prompt = `
@@ -167,7 +173,7 @@ export async function generateAISummary(
 설명: ${description}${transcriptSection}
 
 형식:
-첫 줄: "${statusDisplay}"
+첫 줄: "${warningMessage}${statusDisplay}"
 
 # 핵심정리
 
@@ -181,7 +187,7 @@ export async function generateAISummary(
 - 전체적인 결론
 
 중요한 제약사항:
-- 첫 줄에 반드시 콘텐츠 상태 명시 (스크립트있음/음성있음/스크립트없음)
+- 첫 줄에 ${warningMessage ? "경고 메시지와 " : ""}콘텐츠 상태 명시
 - ${transcript ? "실제 콘텐츠 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
 - ${transcript ? "제공된 콘텐츠에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
