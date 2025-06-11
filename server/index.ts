@@ -103,12 +103,12 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Enhanced port configuration for deployment
-    const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
-    const host = process.env.HOST || "0.0.0.0";
+    // Replit autoscale deployment configuration
+    const port = parseInt(process.env.PORT || '3000');
+    const host = "0.0.0.0";
     
     console.log(`Starting server - Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Attempting to bind to ${host}:${port}`);
+    console.log(`Replit deployment - binding to ${host}:${port}`);
     
     // Enhanced error handling for deployment debugging
     server.on('error', (err: any) => {

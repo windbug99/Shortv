@@ -11,10 +11,10 @@ if (fs.existsSync('dist')) {
 }
 fs.mkdirSync('dist', { recursive: true });
 
-// Build server bundle optimized for autoscale deployment
-console.log('📦 Building server bundle for autoscale...');
+// Build server bundle optimized for Replit autoscale deployment
+console.log('📦 Building server bundle for Replit autoscale...');
 try {
-  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --alias:@shared=./shared --define:process.env.NODE_ENV=\\"production\\"', {
+  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --alias:@shared=./shared --define:process.env.NODE_ENV=\\"production\\" --define:process.env.REPLIT_DEPLOYMENT=\\"true\\"', {
     stdio: 'inherit'
   });
 } catch (error) {
@@ -30,7 +30,10 @@ const prodPackageJson = {
   version: packageJson.version,
   type: packageJson.type,
   scripts: {
-    start: "NODE_ENV=production node index.js"
+    start: "node index.js"
+  },
+  engines: {
+    node: ">=18.0.0"
   },
   dependencies: packageJson.dependencies,
   optionalDependencies: packageJson.optionalDependencies || {}
