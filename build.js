@@ -12,9 +12,9 @@ try {
   }
   fs.mkdirSync('dist', { recursive: true });
   
-  // Skip client build for faster deployment, build server only
+  // Build server with exact path expected by deployment system
   console.log('Building server...');
-  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist', { stdio: 'inherit' });
+  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js', { stdio: 'inherit' });
   
   // Copy essential files
   if (fs.existsSync('shared')) {
