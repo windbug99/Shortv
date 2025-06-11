@@ -1,32 +1,25 @@
 #!/usr/bin/env node
 import { execSync } from 'child_process';
 import fs from 'fs';
-import path from 'path';
 
-console.log('🏗️  Starting production build...');
+console.log('Starting production build...');
 
-// Clean dist directory
+// Clean and create dist directory
 if (fs.existsSync('dist')) {
   fs.rmSync('dist', { recursive: true, force: true });
 }
 fs.mkdirSync('dist', { recursive: true });
 
-// Build client first with timeout protection
-console.log('🎨 Building client assets...');
+// Build server with esbuild (fast and reliable)
+console.log('Building server...');
 try {
-  execSync('timeout 300s vite build', {
+  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --alias:@shared=./shared', {
     stdio: 'inherit'
   });
-  console.log('✅ Client build completed');
 } catch (error) {
-  console.log('⚠️  Client build skipped - will serve from development mode');
+  console.error('Server build failed:', error.message);
+  process.exit(1);
 }
-
-// Build server with esbuild - include shared modules in bundle
-console.log('📦 Building server...');
-execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --external:./client --external:../client --alias:@shared=./shared', {
-  stdio: 'inherit'
-});
 
 // Handle client build output or create fallback
 if (fs.existsSync('client/dist')) {
