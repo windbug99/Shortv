@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Override build script for Replit autoscale deployment compatibility
+// Replit autoscale build with port 8080 enforcement
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-console.log('Replit autoscale build process starting...');
+console.log('Replit autoscale build starting...');
 
 try {
   // Clean dist directory
@@ -12,25 +12,23 @@ try {
   }
   fs.mkdirSync('dist', { recursive: true });
 
-  // Build server for Replit autoscale with port 8080 configuration
+  // Build server for Replit autoscale
   console.log('Building server bundle...');
-  execSync(`esbuild server/index.ts \\
-    --platform=node \\
-    --packages=external \\
-    --bundle \\
-    --format=esm \\
-    --outfile=dist/index.js \\
-    --alias:@shared=./shared \\
-    --define:process.env.NODE_ENV=\\"production\\" \\
-    --define:process.env.PORT=\\"8080\\" \\
-    --target=node18 \\
-    --minify`, {
+  execSync(`esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --alias:@shared=./shared --define:process.env.NODE_ENV=\\"production\\" --define:process.env.PORT=\\"8080\\" --target=node18 --minify`, {
     stdio: 'inherit'
   });
 
-  // Create production package.json with Replit autoscale configuration
+  // Force port 8080 in generated code
+  let serverCode = fs.readFileSync('dist/index.js', 'utf8');
+  serverCode = serverCode.replace(/parseInt\(process\.env\.PORT\s*\|\|\s*['"]\d+['"]\)/g, '8080');
+  serverCode = serverCode.replace(/process\.env\.PORT\s*\|\|\s*['"]\d+['"]/, '"8080"');
+  serverCode = serverCode.replace(/const port = .+?;/g, 'const port = 8080;');
+  serverCode = serverCode.replace(/"localhost"/g, '"0.0.0.0"');
+  fs.writeFileSync('dist/index.js', serverCode);
+
+  // Create production package.json
   const originalPkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  const deployPkg = {
+  const prodPkg = {
     name: originalPkg.name,
     version: originalPkg.version,
     type: "module",
@@ -39,8 +37,7 @@ try {
       start: "PORT=8080 NODE_ENV=production node index.js"
     },
     engines: {
-      node: ">=18.0.0",
-      npm: ">=8.0.0"
+      node: ">=18.0.0"
     },
     dependencies: {
       "@neondatabase/serverless": originalPkg.dependencies["@neondatabase/serverless"],
@@ -60,27 +57,25 @@ try {
     }
   };
 
-  fs.writeFileSync('dist/package.json', JSON.stringify(deployPkg, null, 2));
+  fs.writeFileSync('dist/package.json', JSON.stringify(prodPkg, null, 2));
 
   // Copy application files
   if (fs.existsSync('shared')) {
     fs.cpSync('shared', 'dist/shared', { recursive: true });
   }
-
   if (fs.existsSync('client')) {
     fs.cpSync('client', 'dist/client', { recursive: true });
   }
-
   fs.mkdirSync('dist/public', { recursive: true });
 
-  // Verification
-  if (!fs.existsSync('dist/index.js') || !fs.existsSync('dist/package.json')) {
-    throw new Error('Build verification failed');
+  // Verify build
+  if (!fs.existsSync('dist/index.js')) {
+    throw new Error('Build failed: dist/index.js not created');
   }
 
   const stats = fs.statSync('dist/index.js');
-  console.log(`Build complete: ${(stats.size / 1024).toFixed(1)}kb`);
-  console.log('Replit autoscale deployment ready');
+  console.log('Build successful: ' + (stats.size / 1024).toFixed(1) + 'kb');
+  console.log('Port 8080 enforced for Replit autoscale');
 
 } catch (error) {
   console.error('Build failed:', error.message);
