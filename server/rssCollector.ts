@@ -14,7 +14,13 @@ interface RSSVideo {
 export function initializeRSSCollector() {
   console.log("Initializing RSS collector...");
   
-  // Schedule to run every hour (but don't run initial collection)
+  // Run initial collection to test enhanced audio extraction
+  console.log("Running initial RSS collection to test audio extraction...");
+  collectAllChannelVideos().catch(error => {
+    console.error("Error in initial RSS collection:", error);
+  });
+  
+  // Schedule to run every hour
   cron.schedule("0 * * * *", () => {
     console.log("Running scheduled RSS collection...");
     collectAllChannelVideos().catch(error => {
