@@ -13,69 +13,29 @@ fs.mkdirSync('dist', { recursive: true });
 
 // Build server with esbuild (fast and reliable)
 console.log('📦 Building server...');
-execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --external:./client --external:../client', {
+execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --external:./client --external:../client --external:@shared/*', {
   stdio: 'inherit'
 });
 
-// Build client with a simpler approach
-console.log('🎨 Building client assets...');
-try {
-  // Create a minimal client build
-  execSync('vite build --config vite.config.ts', {
-    stdio: 'inherit',
-    timeout: 180000 // 3 minutes timeout
-  });
-  
-  // Move client build to dist/public for serving
-  if (fs.existsSync('client/dist')) {
-    if (fs.existsSync('dist/public')) {
-      fs.rmSync('dist/public', { recursive: true });
-    }
-    fs.renameSync('client/dist', 'dist/public');
-  }
-} catch (error) {
-  console.log('⚠️  Client build failed, creating minimal static assets...');
-  
-  // Create minimal static files for deployment
-  fs.mkdirSync('dist/public', { recursive: true });
-  
-  // Create a basic index.html
-  const indexHtml = `<!DOCTYPE html>
+// Skip client build for now - server will serve from development assets
+console.log('📁 Creating public directory structure...');
+fs.mkdirSync('dist/public', { recursive: true });
+
+// Create a basic index.html that the server can serve
+const indexHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
-    <style>
-        body { 
-            font-family: system-ui, -apple-system, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            background: #f8fafc;
-            margin: 0;
-        }
-        .loading { 
-            text-align: center; 
-            color: #64748b;
-        }
-    </style>
+    <title>Content Discovery Platform</title>
 </head>
 <body>
-    <div class="loading">
-        <h1>Application Starting...</h1>
-        <p>Please wait while the application loads.</p>
-    </div>
-    <script>
-        // Reload after 3 seconds to check if server is ready
-        setTimeout(() => window.location.reload(), 3000);
-    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>`;
-  
-  fs.writeFileSync('dist/public/index.html', indexHtml);
-}
+
+fs.writeFileSync('dist/public/index.html', indexHtml);
 
 // Copy package.json for production dependencies
 console.log('📋 Copying package.json...');
