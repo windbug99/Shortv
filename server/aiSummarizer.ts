@@ -111,6 +111,7 @@ export async function generateAISummary(
         } else if (transcriptSource === 'whisper') {
           statusDisplay = "음성있음";
         } else {
+          // Only show warning message when both transcript and audio extraction failed
           statusDisplay = "스크립트없음 음성없음";
           warningMessage = "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
         }
@@ -162,6 +163,7 @@ export async function generateAISummary(
         } else if (transcriptSource === 'whisper') {
           statusDisplay = "음성있음";
         } else {
+          // Only show warning message when both transcript and audio extraction failed
           statusDisplay = "스크립트없음 음성없음";
           warningMessage = "본 결과는 제목과 디스크립션 만으로 요약되었으니 실제 영상내용과 차이가 있을 수 있습니다\n";
         }
