@@ -1,5 +1,4 @@
 import { YoutubeTranscript } from 'youtube-transcript';
-import { extractTranscriptWithYouTubeAPI } from './youtubeApiTranscript.js';
 
 interface TranscriptItem {
   text: string;
@@ -11,7 +10,41 @@ export async function extractVideoTranscript(videoId: string): Promise<string | 
   try {
     console.log(`Extracting transcript for video: ${videoId}`);
     
-    // Try to get transcript using youtube-transcript
+    // Try Korean transcript first
+    try {
+      const koreanTranscript = await YoutubeTranscript.fetchTranscript(videoId, {
+        lang: 'ko'
+      });
+      
+      if (koreanTranscript && koreanTranscript.length > 0) {
+        const cleanText = koreanTranscript
+          .map((item: any) => item.text)
+          .join(' ');
+        console.log(`Successfully extracted Korean transcript for ${videoId}: ${cleanText.length} characters`);
+        return preprocessTranscript(cleanText);
+      }
+    } catch (koreanError) {
+      console.log(`No Korean transcript found for ${videoId}, trying English...`);
+    }
+    
+    // Fallback to English transcript
+    try {
+      const englishTranscript = await YoutubeTranscript.fetchTranscript(videoId, {
+        lang: 'en'
+      });
+      
+      if (englishTranscript && englishTranscript.length > 0) {
+        const cleanText = englishTranscript
+          .map((item: any) => item.text)
+          .join(' ');
+        console.log(`Successfully extracted English transcript for ${videoId}: ${cleanText.length} characters`);
+        return preprocessTranscript(cleanText);
+      }
+    } catch (englishError) {
+      console.log(`No English transcript found for ${videoId}, trying default...`);
+    }
+    
+    // Last resort: try default transcript (any language)
     const transcript = await YoutubeTranscript.fetchTranscript(videoId);
     
     if (!transcript || transcript.length === 0) {
@@ -19,17 +52,12 @@ export async function extractVideoTranscript(videoId: string): Promise<string | 
       return null;
     }
     
-    // Process and clean the transcript text
     const cleanText = transcript
       .map((item: any) => item.text)
-      .join(' ')
-      .replace(/\[.*?\]/g, '') // Remove [music], [laughter], etc.
-      .replace(/\n+/g, ' ') // Replace multiple newlines with space
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .trim();
+      .join(' ');
     
-    console.log(`Successfully extracted transcript for ${videoId}: ${cleanText.length} characters`);
-    return cleanText;
+    console.log(`Successfully extracted default transcript for ${videoId}: ${cleanText.length} characters`);
+    return preprocessTranscript(cleanText);
     
   } catch (error) {
     console.warn(`Failed to extract transcript for ${videoId}:`, error);
@@ -40,7 +68,9 @@ export async function extractVideoTranscript(videoId: string): Promise<string | 
 export function preprocessTranscript(transcript: string): string {
   // Further text preprocessing for better AI analysis
   return transcript
-    .replace(/\b(um|uh|er|ah)\b/gi, '') // Remove filler words
+    .replace(/\[.*?\]/g, '') // Remove [music], [laughter], etc.
+    .replace(/\n+/g, ' ') // Replace multiple newlines with space
+    .replace(/\b(um|uh|er|ah|음|어|그|아)\b/gi, '') // Remove filler words (EN/KO)
     .replace(/\s+/g, ' ') // Normalize spaces
     .trim();
 }
