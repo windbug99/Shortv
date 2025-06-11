@@ -61,9 +61,13 @@ export async function validateDatabaseIntegrity(): Promise<{
     WHERE channel_id NOT IN (SELECT id FROM channels)
   `);
   
+  const videosCount = orphanedVideosResult.rows?.[0] as any;
+  const upvotesCount = orphanedUpvotesResult.rows?.[0] as any;
+  const subscriptionsCount = orphanedSubscriptionsResult.rows?.[0] as any;
+  
   return {
-    orphanedVideos: orphanedVideosResult.rows[0]?.count || 0,
-    orphanedUpvotes: orphanedUpvotesResult.rows[0]?.count || 0,
-    orphanedSubscriptions: orphanedSubscriptionsResult.rows[0]?.count || 0
+    orphanedVideos: parseInt(videosCount?.count || '0'),
+    orphanedUpvotes: parseInt(upvotesCount?.count || '0'),
+    orphanedSubscriptions: parseInt(subscriptionsCount?.count || '0')
   };
 }

@@ -37,6 +37,26 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Database integrity check and cleanup on startup
+  const { validateDatabaseIntegrity, cleanupOrphanedRecords } = await import('./dbCleanup.js');
+  const cron = await import('node-cron');
+  
+  const integrityCheck = await validateDatabaseIntegrity();
+  if (integrityCheck.orphanedVideos > 0 || integrityCheck.orphanedUpvotes > 0 || integrityCheck.orphanedSubscriptions > 0) {
+    console.log('데이터베이스 무결성 문제 발견, 자동 정리 시작...');
+    await cleanupOrphanedRecords();
+  }
+  
+  // Schedule daily integrity check at 3 AM
+  cron.default.schedule('0 3 * * *', async () => {
+    console.log('일일 데이터베이스 무결성 검사 시작...');
+    const dailyCheck = await validateDatabaseIntegrity();
+    if (dailyCheck.orphanedVideos > 0 || dailyCheck.orphanedUpvotes > 0 || dailyCheck.orphanedSubscriptions > 0) {
+      console.log(`고아 레코드 발견: 영상 ${dailyCheck.orphanedVideos}개, 업보트 ${dailyCheck.orphanedUpvotes}개, 구독 ${dailyCheck.orphanedSubscriptions}개`);
+      await cleanupOrphanedRecords();
+    }
+  });
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
