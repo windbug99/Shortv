@@ -1,4 +1,5 @@
 import { YoutubeTranscript } from 'youtube-transcript';
+import { extractTranscriptWithWhisper } from './whisperTranscriptor.js';
 
 interface TranscriptItem {
   text: string;
@@ -10,54 +11,70 @@ export async function extractVideoTranscript(videoId: string): Promise<string | 
   try {
     console.log(`Extracting transcript for video: ${videoId}`);
     
-    // Try Korean transcript first
+    // Try YouTube transcript first (fast method)
     try {
-      const koreanTranscript = await YoutubeTranscript.fetchTranscript(videoId, {
-        lang: 'ko'
-      });
+      // Try Korean transcript first
+      try {
+        const koreanTranscript = await YoutubeTranscript.fetchTranscript(videoId, {
+          lang: 'ko'
+        });
+        
+        if (koreanTranscript && koreanTranscript.length > 0) {
+          const cleanText = koreanTranscript
+            .map((item: any) => item.text)
+            .join(' ');
+          console.log(`Successfully extracted Korean transcript for ${videoId}: ${cleanText.length} characters`);
+          return preprocessTranscript(cleanText);
+        }
+      } catch (koreanError) {
+        console.log(`No Korean transcript found for ${videoId}, trying English...`);
+      }
       
-      if (koreanTranscript && koreanTranscript.length > 0) {
-        const cleanText = koreanTranscript
+      // Fallback to English transcript
+      try {
+        const englishTranscript = await YoutubeTranscript.fetchTranscript(videoId, {
+          lang: 'en'
+        });
+        
+        if (englishTranscript && englishTranscript.length > 0) {
+          const cleanText = englishTranscript
+            .map((item: any) => item.text)
+            .join(' ');
+          console.log(`Successfully extracted English transcript for ${videoId}: ${cleanText.length} characters`);
+          return preprocessTranscript(cleanText);
+        }
+      } catch (englishError) {
+        console.log(`No English transcript found for ${videoId}, trying default...`);
+      }
+      
+      // Last resort: try default transcript (any language)
+      const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+      
+      if (transcript && transcript.length > 0) {
+        const cleanText = transcript
           .map((item: any) => item.text)
           .join(' ');
-        console.log(`Successfully extracted Korean transcript for ${videoId}: ${cleanText.length} characters`);
+        console.log(`Successfully extracted default transcript for ${videoId}: ${cleanText.length} characters`);
         return preprocessTranscript(cleanText);
       }
-    } catch (koreanError) {
-      console.log(`No Korean transcript found for ${videoId}, trying English...`);
-    }
-    
-    // Fallback to English transcript
-    try {
-      const englishTranscript = await YoutubeTranscript.fetchTranscript(videoId, {
-        lang: 'en'
-      });
       
-      if (englishTranscript && englishTranscript.length > 0) {
-        const cleanText = englishTranscript
-          .map((item: any) => item.text)
-          .join(' ');
-        console.log(`Successfully extracted English transcript for ${videoId}: ${cleanText.length} characters`);
-        return preprocessTranscript(cleanText);
+    } catch (youtubeError) {
+      console.log(`YouTube transcript extraction failed for ${videoId}, trying Whisper...`);
+      
+      // If YouTube transcript fails, try Whisper transcription
+      try {
+        const whisperTranscript = await extractTranscriptWithWhisper(videoId);
+        if (whisperTranscript && whisperTranscript.trim().length > 0) {
+          console.log(`Successfully extracted transcript with Whisper for ${videoId}: ${whisperTranscript.length} characters`);
+          return preprocessTranscript(whisperTranscript);
+        }
+      } catch (whisperError) {
+        console.log(`Whisper transcription also failed for ${videoId}:`, whisperError);
       }
-    } catch (englishError) {
-      console.log(`No English transcript found for ${videoId}, trying default...`);
     }
     
-    // Last resort: try default transcript (any language)
-    const transcript = await YoutubeTranscript.fetchTranscript(videoId);
-    
-    if (!transcript || transcript.length === 0) {
-      console.log(`No transcript available for video: ${videoId}`);
-      return null;
-    }
-    
-    const cleanText = transcript
-      .map((item: any) => item.text)
-      .join(' ');
-    
-    console.log(`Successfully extracted default transcript for ${videoId}: ${cleanText.length} characters`);
-    return preprocessTranscript(cleanText);
+    console.log(`No transcript available for video: ${videoId}`);
+    return null;
     
   } catch (error) {
     console.warn(`Failed to extract transcript for ${videoId}:`, error);
