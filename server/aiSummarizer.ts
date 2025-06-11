@@ -62,16 +62,16 @@ export async function generateAISummary(
 설명: ${description}${transcriptText}
 
 형식:
-첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
+첫 줄: "${transcript ? "음성있음" : "음성없음"}"
 둘째 줄부터: 88자 이상 98자 이하 요약 내용
 
 중요한 제약사항:
-- 첫 줄에 반드시 스크립트 상태 명시
+- 첫 줄에 반드시 음성 상태 명시 (음성있음/음성없음)
 - 요약은 88자 이상 98자 이하 (공백 포함)
-- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
+- ${transcript ? "실제 음성 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
 - 문어체 사용
-- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
+- ${transcript ? "음성에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 `;
       } else {
         const transcriptChunks = transcript
@@ -100,7 +100,7 @@ export async function generateAISummary(
 설명: ${description}${transcriptSection}
 
 형식:
-첫 줄: "${transcript ? "스크립트 있음" : "스크립트 없음"}"
+첫 줄: "${transcript ? "음성있음" : "음성없음"}"
 
 # 핵심정리
 
@@ -114,10 +114,10 @@ export async function generateAISummary(
 - 전체적인 결론
 
 중요한 제약사항:
-- 첫 줄에 반드시 스크립트 상태 명시
-- ${transcript ? "스크립트의 실제 내용만" : "제목과 설명의 내용만"} 사용
+- 첫 줄에 반드시 음성 상태 명시 (음성있음/음성없음)
+- ${transcript ? "실제 음성 내용만" : "제목과 설명의 내용만"} 사용
 - 외부 정보나 추측 내용 절대 포함 금지
-- ${transcript ? "스크립트에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
+- ${transcript ? "음성에 없는 내용은 언급하지 않음" : "제목과 설명에 없는 내용은 언급하지 않음"}
 - 구체적이고 실용적인 내용 포함
 - 전체 요약 길이: 300-500자
 
