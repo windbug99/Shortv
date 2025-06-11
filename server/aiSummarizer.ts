@@ -41,6 +41,7 @@ export async function generateAISummary(
           const { YoutubeTranscript } = await import("youtube-transcript");
 
           // Try Korean first
+          let youtubeTranscriptFound = false;
           try {
             const koreanTranscript = await YoutubeTranscript.fetchTranscript(
               videoId,
@@ -51,9 +52,14 @@ export async function generateAISummary(
                 .map((item: any) => item.text)
                 .join(" ");
               transcriptSource = "youtube";
+              youtubeTranscriptFound = true;
             }
           } catch (koreanError) {
-            // Try English
+            // Korean failed, continue to English
+          }
+
+          // Try English if Korean didn't work
+          if (!youtubeTranscriptFound) {
             try {
               const englishTranscript = await YoutubeTranscript.fetchTranscript(
                 videoId,
@@ -64,37 +70,50 @@ export async function generateAISummary(
                   .map((item: any) => item.text)
                   .join(" ");
                 transcriptSource = "youtube";
+                youtubeTranscriptFound = true;
               }
             } catch (englishError) {
-              // Try default
-              try {
-                const defaultTranscript =
-                  await YoutubeTranscript.fetchTranscript(videoId);
-                if (defaultTranscript && defaultTranscript.length > 0) {
-                  transcript = defaultTranscript
-                    .map((item: any) => item.text)
-                    .join(" ");
-                  transcriptSource = "youtube";
-                }
-              } catch (defaultError) {
-                // YouTube transcript failed, try Whisper
-                console.log(
-                  `YouTube transcript failed for ${videoId}, trying audio transcription...`,
-                );
-                try {
-                  const { extractTranscriptWithWhisper } = await import(
-                    "./audioTranscriptor.js"
-                  );
-                  const whisperTranscript =
-                    await extractTranscriptWithWhisper(videoId);
-                  if (whisperTranscript && whisperTranscript.length > 50) {
-                    transcript = whisperTranscript;
-                    transcriptSource = "whisper";
-                  }
-                } catch (whisperError) {
-                  console.log(`Audio transcription also failed for ${videoId}`);
-                }
+              // English failed, continue to default
+            }
+          }
+
+          // Try default if English didn't work
+          if (!youtubeTranscriptFound) {
+            try {
+              const defaultTranscript =
+                await YoutubeTranscript.fetchTranscript(videoId);
+              if (defaultTranscript && defaultTranscript.length > 0) {
+                transcript = defaultTranscript
+                  .map((item: any) => item.text)
+                  .join(" ");
+                transcriptSource = "youtube";
+                youtubeTranscriptFound = true;
               }
+            } catch (defaultError) {
+              // Default failed
+            }
+          }
+
+          // If no YouTube transcript found (empty or error), try Whisper
+          if (!youtubeTranscriptFound) {
+            console.log(
+              `No YouTube transcript available for ${videoId}, trying audio transcription...`,
+            );
+            try {
+              const { extractTranscriptWithWhisper } = await import(
+                "./audioTranscriptor.js"
+              );
+              const whisperTranscript =
+                await extractTranscriptWithWhisper(videoId);
+              if (whisperTranscript && whisperTranscript.length > 50) {
+                transcript = whisperTranscript;
+                transcriptSource = "whisper";
+                console.log(`Whisper audio transcription successful for ${videoId}: ${whisperTranscript.length} characters`);
+              } else {
+                console.log(`Whisper transcription failed or too short for ${videoId}`);
+              }
+            } catch (whisperError) {
+              console.log(`Audio transcription failed for ${videoId}:`, whisperError);
             }
           }
         } catch (importError) {
