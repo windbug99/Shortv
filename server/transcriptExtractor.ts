@@ -1,4 +1,5 @@
 import { YoutubeTranscript } from 'youtube-transcript';
+import { extractTranscriptWithYouTubeAPI } from './youtubeApiTranscript.js';
 
 interface TranscriptItem {
   text: string;

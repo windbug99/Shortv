@@ -1,180 +1,130 @@
-export interface YouTubeApiTranscriptResult {
-  success: boolean;
-  transcript?: string;
-  error?: string;
-  method: 'youtube_api_captions' | 'error';
+import fetch from 'node-fetch';
+import { youtubeOAuth } from './youtubeOAuth.js';
+
+interface CaptionTrack {
+  id: string;
+  name: {
+    simpleText: string;
+  };
+  languageCode: string;
+  kind?: string;
 }
 
-export async function extractTranscriptWithYouTubeAPI(videoId: string): Promise<YouTubeApiTranscriptResult> {
-  if (!process.env.YOUTUBE_API_KEY) {
-    return {
-      success: false,
-      error: 'YouTube API key required',
-      method: 'error'
+interface CaptionListResponse {
+  items: Array<{
+    snippet: {
+      videoId: string;
+      lastUpdated: string;
+      trackKind: string;
+      language: string;
+      name: string;
+      audioTrackType: string;
+      isCC: boolean;
+      isLarge: boolean;
+      isAutoSynced: boolean;
+      status: string;
     };
+    id: string;
+  }>;
+}
+
+async function getCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) {
+    throw new Error('YouTube API key not configured');
   }
 
+  const url = `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${apiKey}`;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to get caption tracks: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json() as CaptionListResponse;
+  
+  return data.items.map(item => ({
+    id: item.id,
+    name: { simpleText: item.snippet.name },
+    languageCode: item.snippet.language,
+    kind: item.snippet.trackKind
+  }));
+}
+
+async function downloadCaption(captionId: string): Promise<string> {
+  if (!youtubeOAuth.isConfigured()) {
+    throw new Error('YouTube OAuth not configured');
+  }
+
+  const accessToken = await youtubeOAuth.getAccessToken();
+  
+  const url = `https://www.googleapis.com/youtube/v3/captions/${captionId}?tfmt=srt`;
+  
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Caption download failed: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.text();
+}
+
+export async function extractTranscriptWithYouTubeAPI(videoId: string): Promise<string> {
   console.log(`Extracting transcript with YouTube Data API v3: ${videoId}`);
-
+  
   try {
-    // Step 1: Get captions list for the video
-    const captionsListUrl = `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${process.env.YOUTUBE_API_KEY}`;
+    // Get available caption tracks
+    const tracks = await getCaptionTracks(videoId);
     
-    const captionsResponse = await fetch(captionsListUrl);
-    if (!captionsResponse.ok) {
-      throw new Error(`Captions API failed: ${captionsResponse.status} ${captionsResponse.statusText}`);
+    if (tracks.length === 0) {
+      throw new Error('No caption tracks available');
     }
 
-    const captionsData = await captionsResponse.json();
+    // Prefer manual captions over auto-generated
+    const manualTrack = tracks.find(track => track.kind !== 'asr');
+    const selectedTrack = manualTrack || tracks[0];
     
-    if (!captionsData.items || captionsData.items.length === 0) {
-      return {
-        success: false,
-        error: 'No captions available for this video',
-        method: 'error'
-      };
-    }
-
-    // Step 2: Find the best caption track (preferably Korean, then auto-generated)
-    let selectedCaption = null;
-    
-    // Priority 1: Korean manual captions
-    selectedCaption = captionsData.items.find((caption: any) => 
-      caption.snippet.language === 'ko' && caption.snippet.trackKind === 'standard'
-    );
-    
-    // Priority 2: Korean auto-generated captions
-    if (!selectedCaption) {
-      selectedCaption = captionsData.items.find((caption: any) => 
-        caption.snippet.language === 'ko' && caption.snippet.trackKind === 'ASR'
-      );
+    if (!selectedTrack) {
+      throw new Error('No suitable caption track found');
     }
     
-    // Priority 3: English manual captions
-    if (!selectedCaption) {
-      selectedCaption = captionsData.items.find((caption: any) => 
-        caption.snippet.language === 'en' && caption.snippet.trackKind === 'standard'
-      );
-    }
+    console.log(`Found caption track: ${selectedTrack.languageCode} (${selectedTrack.kind || 'standard'}), ID: ${selectedTrack.id}`);
     
-    // Priority 4: English auto-generated captions
-    if (!selectedCaption) {
-      selectedCaption = captionsData.items.find((caption: any) => 
-        caption.snippet.language === 'en' && caption.snippet.trackKind === 'ASR'
-      );
-    }
+    // Download the caption
+    const captionData = await downloadCaption(selectedTrack.id);
     
-    // Priority 5: Any available captions
-    if (!selectedCaption) {
-      selectedCaption = captionsData.items[0];
-    }
-
-    const captionId = selectedCaption.id;
-    const language = selectedCaption.snippet.language;
-    const trackKind = selectedCaption.snippet.trackKind;
+    // Convert SRT format to plain text
+    const plainText = convertSRTToPlainText(captionData);
     
-    console.log(`Found caption track: ${language} (${trackKind}), ID: ${captionId}`);
-
-    // Step 3: Download the caption content
-    const captionDownloadUrl = `https://www.googleapis.com/youtube/v3/captions/${captionId}?key=${process.env.YOUTUBE_API_KEY}&tfmt=srt`;
-    
-    const transcriptResponse = await fetch(captionDownloadUrl);
-    if (!transcriptResponse.ok) {
-      throw new Error(`Caption download failed: ${transcriptResponse.status} ${transcriptResponse.statusText}`);
-    }
-
-    const srtContent = await transcriptResponse.text();
-    
-    // Step 4: Parse SRT format and extract text only
-    const transcript = parseSRTContent(srtContent);
-    
-    if (!transcript || transcript.length < 10) {
-      return {
-        success: false,
-        error: 'Downloaded transcript is too short or empty',
-        method: 'error'
-      };
-    }
-
-    console.log(`Transcript extracted successfully: ${transcript.length} characters (${language})`);
-    
-    return {
-      success: true,
-      transcript,
-      method: 'youtube_api_captions'
-    };
-
+    return plainText;
   } catch (error) {
     console.error('YouTube API transcript extraction error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      method: 'error'
-    };
+    throw error;
   }
 }
 
-function parseSRTContent(srtContent: string): string {
-  try {
-    // SRT format parsing - extract only the text content
-    const lines = srtContent.split('\n');
-    const textLines: string[] = [];
+function convertSRTToPlainText(srtContent: string): string {
+  // Remove SRT timing and numbering, keep only text
+  const lines = srtContent.split('\n');
+  const textLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
     
-    let isTextLine = false;
-    
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      
-      // Skip empty lines
-      if (!trimmedLine) {
-        isTextLine = false;
-        continue;
-      }
-      
-      // Skip sequence numbers (just numbers)
-      if (/^\d+$/.test(trimmedLine)) {
-        isTextLine = false;
-        continue;
-      }
-      
-      // Skip timestamps (format: 00:00:00,000 --> 00:00:00,000)
-      if (/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(trimmedLine)) {
-        isTextLine = true;
-        continue;
-      }
-      
-      // Collect text lines
-      if (isTextLine && trimmedLine) {
-        // Clean up HTML tags and special characters
-        const cleanedText = trimmedLine
-          .replace(/<[^>]*>/g, '') // Remove HTML tags
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&amp;/g, '&')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .trim();
-        
-        if (cleanedText) {
-          textLines.push(cleanedText);
-        }
-      }
+    // Skip empty lines, numbers, and timestamp lines
+    if (line === '' || /^\d+$/.test(line) || /^\d{2}:\d{2}:\d{2}/.test(line)) {
+      continue;
     }
     
-    // Join all text and clean up
-    const fullText = textLines.join(' ')
-      .replace(/\s+/g, ' ') // Multiple spaces to single space
-      .trim();
-    
-    return fullText;
-    
-  } catch (error) {
-    console.error('SRT parsing error:', error);
-    return '';
+    // This should be actual caption text
+    if (line.length > 0) {
+      textLines.push(line);
+    }
   }
-}
-
-// Function to check if YouTube API key is available
-export function isYouTubeAPIAvailable(): boolean {
-  return !!process.env.YOUTUBE_API_KEY;
+  
+  return textLines.join(' ').trim();
 }
