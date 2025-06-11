@@ -8,7 +8,7 @@ if (!clientId) {
 }
 
 const scope = 'https://www.googleapis.com/auth/youtube.readonly';
-const redirectUri = 'urn:ietf:wg:oauth:2.0:oob';
+const redirectUri = 'http://localhost:8080';
 const responseType = 'code';
 const accessType = 'offline';
 const promptParam = 'consent';

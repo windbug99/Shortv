@@ -29,7 +29,7 @@ async function getRefreshToken(authorizationCode: string) {
         client_secret: clientSecret,
         code: authorizationCode,
         grant_type: 'authorization_code',
-        redirect_uri: 'urn:ietf:wg:oauth:2.0:oob',
+        redirect_uri: 'http://localhost:8080',
       }),
     });
 
