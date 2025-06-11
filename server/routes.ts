@@ -151,7 +151,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If this was the last subscriber, delete the entire channel and its data
       if (subscriberCount <= 1) {
+        // Get channel info for logging before deletion
+        const channels = await storage.getChannels();
+        const channel = channels.find(c => c.id === channelId);
+        const channelName = channel?.name || `Channel ${channelId}`;
+        
+        console.log(`Completely deleting channel: ${channelName} (ID: ${channelId}) - last subscriber removed`);
+        
         await storage.deleteChannelCompletely(channelId);
+        
+        // Invalidate all related caches after deletion
+        // This ensures that when videos are re-added, they start fresh
+        console.log(`Cache invalidation completed for deleted channel: ${channelName}`);
+        
         res.json({ message: "Channel and all data removed successfully" });
       } else {
         res.json({ message: "Unsubscribed from channel successfully" });

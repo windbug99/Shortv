@@ -130,6 +130,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteChannelCompletely(channelId: number): Promise<void> {
+    // Get video count and video IDs for logging and cache cleanup
+    const videosToDelete = await db
+      .select({ videoId: videos.videoId })
+      .from(videos)
+      .where(eq(videos.channelId, channelId));
+    
+    const videoCount = videosToDelete.length;
+    const videoIds = videosToDelete.map(v => v.videoId);
+    
     // Delete in correct order to respect foreign key constraints
     
     // 1. Delete video upvotes first
@@ -146,7 +155,11 @@ export class DatabaseStorage implements IStorage {
     // 4. Finally delete the channel itself
     await db.delete(channels).where(eq(channels.id, channelId));
     
-    console.log(`Completely deleted channel ${channelId} and all related data`);
+    // 5. Clear video processing cache for all deleted videos
+    const { clearChannelCache } = await import('./cacheManager.js');
+    clearChannelCache(channelId.toString(), videoIds);
+    
+    console.log(`Completely deleted channel ${channelId} and all related data (${videoCount} videos removed, cache cleared)`);
   }
 
   // Video operations

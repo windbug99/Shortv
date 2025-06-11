@@ -193,6 +193,13 @@ export async function collectChannelVideos(channelId: string, dbChannelId: numbe
         // Check if video already exists
         const existingVideo = await storage.getVideoByVideoId(video.videoId);
         if (existingVideo) {
+          // Skip if video exists and belongs to this channel
+          if (existingVideo.channelId === dbChannelId) {
+            continue;
+          }
+          // If video exists but belongs to different channel, this could be from
+          // a previously deleted and re-added channel - log for awareness
+          console.log(`Video ${video.videoId} exists but belongs to different channel (${existingVideo.channelId} vs ${dbChannelId})`);
           continue;
         }
         
