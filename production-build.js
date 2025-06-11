@@ -22,21 +22,41 @@ try {
   process.exit(1);
 }
 
-// Create production package.json
+// Create production package.json optimized for Replit autoscale
 console.log('📄 Creating production package.json...');
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const prodPackageJson = {
   name: packageJson.name,
   version: packageJson.version,
   type: packageJson.type,
+  main: "index.js",
   scripts: {
-    start: "node index.js"
+    start: "PORT=8080 NODE_ENV=production node index.js"
   },
   engines: {
-    node: ">=18.0.0"
+    node: ">=18.0.0",
+    npm: ">=8.0.0"
   },
-  dependencies: packageJson.dependencies,
-  optionalDependencies: packageJson.optionalDependencies || {}
+  dependencies: {
+    // Essential runtime dependencies for Replit autoscale
+    "@neondatabase/serverless": packageJson.dependencies["@neondatabase/serverless"],
+    "express": packageJson.dependencies["express"],
+    "express-session": packageJson.dependencies["express-session"],
+    "drizzle-orm": packageJson.dependencies["drizzle-orm"],
+    "drizzle-zod": packageJson.dependencies["drizzle-zod"],
+    "passport": packageJson.dependencies["passport"],
+    "passport-local": packageJson.dependencies["passport-local"],
+    "openid-client": packageJson.dependencies["openid-client"],
+    "node-cron": packageJson.dependencies["node-cron"],
+    "zod": packageJson.dependencies["zod"],
+    "connect-pg-simple": packageJson.dependencies["connect-pg-simple"],
+    "node-fetch": packageJson.dependencies["node-fetch"],
+    "memoizee": packageJson.dependencies["memoizee"],
+    "memorystore": packageJson.dependencies["memorystore"]
+  },
+  optionalDependencies: {
+    "bufferutil": "^4.0.8"
+  }
 };
 
 fs.writeFileSync('dist/package.json', JSON.stringify(prodPackageJson, null, 2));

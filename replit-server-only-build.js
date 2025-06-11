@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Override build script for Replit autoscale deployment compatibility
+// Server-only build for Replit autoscale deployment
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-console.log('Replit autoscale build process starting...');
+console.log('Building server for Replit autoscale deployment...');
 
 try {
   // Clean dist directory
@@ -12,8 +12,7 @@ try {
   }
   fs.mkdirSync('dist', { recursive: true });
 
-  // Build server for Replit autoscale with port 8080 configuration
-  console.log('Building server bundle...');
+  // Build server bundle for Replit autoscale
   execSync(`esbuild server/index.ts \\
     --platform=node \\
     --packages=external \\
@@ -23,14 +22,15 @@ try {
     --alias:@shared=./shared \\
     --define:process.env.NODE_ENV=\\"production\\" \\
     --define:process.env.PORT=\\"8080\\" \\
-    --target=node18 \\
-    --minify`, {
+    --target=node18`, {
     stdio: 'inherit'
   });
 
-  // Create production package.json with Replit autoscale configuration
+  // Read original package.json for dependencies
   const originalPkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  const deployPkg = {
+
+  // Create minimal production package.json for Replit
+  const prodPkg = {
     name: originalPkg.name,
     version: originalPkg.version,
     type: "module",
@@ -39,8 +39,7 @@ try {
       start: "PORT=8080 NODE_ENV=production node index.js"
     },
     engines: {
-      node: ">=18.0.0",
-      npm: ">=8.0.0"
+      node: ">=18.0.0"
     },
     dependencies: {
       "@neondatabase/serverless": originalPkg.dependencies["@neondatabase/serverless"],
@@ -60,9 +59,9 @@ try {
     }
   };
 
-  fs.writeFileSync('dist/package.json', JSON.stringify(deployPkg, null, 2));
+  fs.writeFileSync('dist/package.json', JSON.stringify(prodPkg, null, 2));
 
-  // Copy application files
+  // Copy essential files
   if (fs.existsSync('shared')) {
     fs.cpSync('shared', 'dist/shared', { recursive: true });
   }
@@ -73,16 +72,16 @@ try {
 
   fs.mkdirSync('dist/public', { recursive: true });
 
-  // Verification
-  if (!fs.existsSync('dist/index.js') || !fs.existsSync('dist/package.json')) {
-    throw new Error('Build verification failed');
+  // Verify build
+  if (!fs.existsSync('dist/index.js')) {
+    throw new Error('Build failed: dist/index.js not created');
   }
 
   const stats = fs.statSync('dist/index.js');
-  console.log(`Build complete: ${(stats.size / 1024).toFixed(1)}kb`);
-  console.log('Replit autoscale deployment ready');
+  console.log(`Server build complete: ${(stats.size / 1024).toFixed(1)}kb`);
+  console.log('Replit autoscale ready - Port 8080 configured');
 
 } catch (error) {
-  console.error('Build failed:', error.message);
+  console.error('Server build failed:', error.message);
   process.exit(1);
 }
