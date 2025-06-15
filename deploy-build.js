@@ -1,57 +1,48 @@
 #!/usr/bin/env node
+
 import { execSync } from 'child_process';
 import fs from 'fs';
+import path from 'path';
 
-console.log('Starting deployment build...');
+function log(message) {
+  console.log(`[BUILD] ${message}`);
+}
 
-// Clean and create dist directory
+function error(message) {
+  console.error(`[ERROR] ${message}`);
+}
+
+// Clean and prepare
+log('Cleaning previous build...');
 if (fs.existsSync('dist')) {
   fs.rmSync('dist', { recursive: true, force: true });
 }
-fs.mkdirSync('dist', { recursive: true });
 
-// Build server with esbuild (fast and reliable)
-console.log('Building server...');
+// Build client (lightweight approach)
+log('Building client...');
 try {
-  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --alias:@shared=./shared', {
-    stdio: 'inherit'
-  });
-} catch (error) {
-  console.error('Server build failed:', error.message);
+  execSync('npm run build 2>/dev/null || vite build', { stdio: 'inherit' });
+} catch (e) {
+  error('Client build failed');
   process.exit(1);
 }
 
-// Copy package.json with production dependencies
-console.log('Creating production package.json...');
-const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-const prodPackageJson = {
-  name: packageJson.name,
-  version: packageJson.version,
-  type: packageJson.type,
-  dependencies: packageJson.dependencies,
-  optionalDependencies: packageJson.optionalDependencies || {}
-};
+// Verify all required files exist
+const serverFile = path.resolve('dist/index.js');
+const clientDir = path.resolve('dist/public');
+const indexHtml = path.resolve(clientDir, 'index.html');
 
-fs.writeFileSync('dist/package.json', JSON.stringify(prodPackageJson, null, 2));
-
-// Copy shared modules if they exist
-if (fs.existsSync('shared')) {
-  console.log('Copying shared modules...');
-  fs.cpSync('shared', 'dist/shared', { recursive: true });
+if (!fs.existsSync(serverFile)) {
+  error('Server build missing: ' + serverFile);
+  process.exit(1);
 }
 
-// Create basic static serving structure
-console.log('Setting up static file serving...');
-fs.mkdirSync('dist/public', { recursive: true });
-
-// Copy client source files for development serving
-if (fs.existsSync('client')) {
-  fs.cpSync('client', 'dist/client', { recursive: true });
+if (!fs.existsSync(indexHtml)) {
+  error('Client build missing: ' + indexHtml);
+  process.exit(1);
 }
 
-console.log('Build completed successfully');
-console.log('Files created:');
-console.log('- dist/index.js (server bundle)');
-console.log('- dist/package.json (production dependencies)');
-console.log('- dist/shared/ (shared modules)');
-console.log('- dist/client/ (client source for development serving)');
+log('Build verification complete');
+log('Server: ' + Math.round(fs.statSync(serverFile).size / 1024) + 'KB');
+log('Client ready at: ' + clientDir);
+log('Deployment build successful');
